@@ -135,7 +135,7 @@ lines(exp(lo$fitted)+1, type = "o", pch = 22, lty = 2, col = "red")
 
 
 
-#########################################
+######################################### 
 #### State-Space Model ####
 #Input.data <- Data.training$Items
 Input.data <- as.numeric(lo$fitted)
