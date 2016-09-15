@@ -138,11 +138,11 @@ lines(exp(lo$fitted)+1, type = "o", pch = 22, lty = 2, col = "red")
 #########################################
 #### State-Space Model ####
 #Input.data <- Data.training$Items
-Input.data <- as.numeric(lo$fitted)
+Input.data <- as.numeric(LoessSmooth$Items)
 Seasonal1 <- 60*24/as.integer(Interval)
 Seasonal2 <- 7*Seasonal1
 Data.msts <- msts(Input.data, seasonal.periods = c(Seasonal1, Seasonal2))
-Fit.tbats <- tbats(Data.msts, use.box.cox = T, 
+Fit.tbats <- bats(Data.msts, use.box.cox = T, 
                    seasonal.periods = c(Seasonal1, Seasonal2),
                    use.trend = T,  use.damped.trend= T,
                    use.arma.errors = T)
@@ -150,25 +150,25 @@ Fit.tbats <- tbats(Data.msts, use.box.cox = T,
 lg <- wk.testing*7*24*60/as.integer(Interval)
 
 Results.temp <- forecast(Fit.tbats, h =lg)
-#Results <- Results.temp$mean
+Results <- as.numeric(Results.temp$mean)
 #Results <- InvBoxCox(Results.temp$mean, Lambda)
-Results <- exp(as.numeric(Results.temp$mean)) - 1
+#Results <- exp(as.numeric(Results.temp$mean)) - 1
 
 Results[which(Results < 0 )] <- 0
 
-Ck <- data.frame(Results.temp$mean, Exp = exp(Results.temp$mean) - 1, Results, Data.testing$Items)
+# Ck <- data.frame(Results.temp$mean, Exp = exp(Results.temp$mean) - 1, Results, Data.testing$Items)
 
-plot(c(lo$fitted, rep(0, length= nrow(Data.testing))),
-     type ="o", col= "blue",  ylim=c(0, max(lo$fitted)), cex.axis=1.5,
-     main = 'Loess + Predicted')
-lines(c(rep(0, length= nrow(Data.training)), Results.temp$mean), type = "o", pch = 22, lty = 2, col = "red")
+# plot(c(lo$fitted, rep(0, length= nrow(Data.testing))),
+#      type ="o", col= "blue",  ylim=c(0, max(lo$fitted)), cex.axis=1.5,
+#      main = 'Loess + Predicted')
+# lines(c(rep(0, length= nrow(Data.training)), Results.temp$mean), type = "o", pch = 22, lty = 2, col = "red")
 
 
-plot(c(exp(lo$fitted)-1, rep(0, length= nrow(Data.testing))),
-     type ="o", col= "blue",  cex.axis=1.5,
-     main = 'Exp_Loess + Exp_Predicted')
-lines(c(rep(0, length= nrow(Data.training)), Results), 
-      type = "o", pch = 22, lty = 2, col = "red")
+# plot(c(exp(lo$fitted)-1, rep(0, length= nrow(Data.testing))),
+#      type ="o", col= "blue",  cex.axis=1.5,
+#      main = 'Exp_Loess + Exp_Predicted')
+# lines(c(rep(0, length= nrow(Data.training)), Results), 
+#       type = "o", pch = 22, lty = 2, col = "red")
 
 
 plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
