@@ -111,7 +111,7 @@ LoessSmooth$BoxCox <- BoxCox(LoessSmooth$Items, Lambda)
 
 #2. Smoothing
 lo <- loess(LoessSmooth$BoxCox ~ as.numeric(as.POSIXct(LoessSmooth$DateTime, origin = "1970-01-01", tz="GMT")),
-            span = 0.01)
+            span = 0.1)
 plot(LoessSmooth$BoxCox,   type ="o", col= "blue",  ylim=c(min(LoessSmooth$BoxCox), max(LoessSmooth$BoxCox)))
 lines(lo$fitted, type = "o", pch = 22, lty = 2, col = "red")
 
