@@ -86,7 +86,7 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 #### Segment for training and testing ####
 Training.End <- "2011-05-21"
   
-wk.training <- 3
+wk.training <- 6
 wk.testing <- 2
 Data.training <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End)- wk.training*7+1 ))
                             & (as.Date(DataAllClean$DateTime)<= as.Date(Training.End))),]
