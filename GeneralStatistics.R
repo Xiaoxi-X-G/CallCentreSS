@@ -84,7 +84,7 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 
 
 #### Segment for training and testing ####
-Training.End <- "2011-05-08"
+Training.End <- "2012-03-21"
   
 wk.training <- 6
 wk.testing <- 2
