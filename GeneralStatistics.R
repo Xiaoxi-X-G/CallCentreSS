@@ -84,7 +84,7 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 
 
 #### Segment for training and testing ####
-Training.End <- "2012-03-21"
+Training.End <- "2011-05-08"
   
 wk.training <- 6
 wk.testing <- 2
@@ -118,6 +118,9 @@ hist(LoessSmooth$BoxCox)
 hist(LoessSmooth$LogPlus1)
 
 
+
+
+plot(LoessSmooth$LogPlus1, type="o", col = "blue", main="Orignal + Reversed Loess")
 # 
 
 #########################################
