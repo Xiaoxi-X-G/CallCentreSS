@@ -119,26 +119,25 @@ hist(LoessSmooth$LogPlus1)
 
 
 #2. Smoothing
-# NOPoint <- 24 # Define locate data-set, i.e., NOPoint/Polynormial
-# alpha <- NOPoint/nrow(LoessSmooth)
-# lo <- loess(LoessSmooth$LogPlus1 ~ as.numeric(as.POSIXct(LoessSmooth$DateTime, origin = "1970-01-01", tz="GMT")),
-#             span = alpha,
-#             parametric = F)
-# plot(LoessSmooth$LogPlus1,   type ="o", col= "blue",  
-#      ylim=c(0, max(LoessSmooth$LogPlus1)),
-#      main= "Log + Loess")
-# lines(lo$fitted, type = "o", pch = 22, lty = 2, col = "red")
-# 
-# 
-# plot(LoessSmooth$Items, type="o", col = "blue", main="Orignal + Reversed Loess")
-# lines(exp(lo$fitted)+1, type = "o", pch = 22, lty = 2, col = "red")
-# 
+NOPoint <- 24 # Define locate data-set, i.e., NOPoint/Polynormial
+alpha <- NOPoint/nrow(LoessSmooth)
+lo <- loess(LoessSmooth$LogPlus1 ~ as.numeric(as.POSIXct(LoessSmooth$DateTime, origin = "1970-01-01", tz="GMT")),
+            span = alpha,
+            parametric = F)
+plot(LoessSmooth$LogPlus1,   type ="o", col= "blue",
+     ylim=c(0, max(LoessSmooth$LogPlus1)),
+     main= "Log + Loess")
+lines(lo$fitted, type = "o", pch = 22, lty = 2, col = "red")
+
+
+plot(LoessSmooth$Items, type="o", col = "blue", main="Orignal + Reversed Loess")
+lines(exp(lo$fitted)+1, type = "o", pch = 22, lty = 2, col = "red")
+
 # 
 
 #########################################
 #### State-Space Model ####
-Input.data <- Data.training$Items
-#Input.data <- as.numeric(lo$fitted)
+Input.data <- as.numeric(lo$fitted)
 Seasonal1 <- 60*24/as.integer(Interval)
 Seasonal2 <- 7*Seasonal1
 Data.msts <- msts(Input.data, seasonal.periods = c(Seasonal1, Seasonal2))
@@ -150,8 +149,6 @@ Fit.tbats <- tbats(Data.msts, use.box.cox = T,
 lg <- wk.testing*7*24*60/as.integer(Interval)
 
 Results.temp <- forecast(Fit.tbats, h =lg)
-#Results <- Results.temp$mean
-#Results <- InvBoxCox(Results.temp$mean, Lambda)
 Results <- exp(as.numeric(Results.temp$mean)) - 1
 
 Results[which(Results < 0 )] <- 0
@@ -186,7 +183,7 @@ lines(as.numeric(Results), type = "o", pch = 22,  col = "green")
 RMSE <- sqrt(mean((Data.testing$Items-Results)^2, na.rm =T))
 Data.testing$Pred <- Results
 
-Residual <- Data.testing$Pred - Data.testing$Items
+Residual <- as.numeric(Data.testing$Pred - Data.testing$Items)
 plot(Residual)
 mean(Residual)
 hist(Residual)
