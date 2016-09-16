@@ -12,7 +12,7 @@ library(RODBC)
 odbcDataSources()
 
 conn<-odbcConnect("localdb") #
-DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'Public_Incident';", as.is = T)
+DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'Public_Enquiries';", as.is = T)
 odbcClose(conn)
 
 ######### Clean data
@@ -29,25 +29,25 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 
 
 # ######### Check Intra and Inter day correlation ####
-# require(corrgram)
-# require(corrplot)
-# 
-# ### Inter day
+require(corrgram)
+require(corrplot)
+
+### Inter day
 # Corrgram.data.inter.temp <- DataAllClean
 # Corrgram.data.inter.temp[,1] <- as.POSIXct(Corrgram.data.inter.temp[,1], origin = "1970-01-01", tz="GMT")
 # 
 # Corrgram.data.inter <- tapply(as.integer(Corrgram.data.inter.temp$Items),
 #                               as.factor(format(Corrgram.data.inter.temp$DateTime, "%Y-%m-%d")), sum)
 # 
-# Corrgram.data.inter <- aggregate(as.integer(Corrgram.data.inter.temp$Items), 
-#           list(Date=format(Corrgram.data.inter.temp$DateTime, "%Y-%m-%d")), 
+# Corrgram.data.inter <- aggregate(as.integer(Corrgram.data.inter.temp$Items),
+#           list(Date=format(Corrgram.data.inter.temp$DateTime, "%Y-%m-%d")),
 #           FUN=sum)
 # colnames(Corrgram.data.inter)[2] <- "Value"
-# 
+# #
 # Corrgram.data.inter$WkDay <- weekdays(as.Date(Corrgram.data.inter$Date))
 # #Corrgram.data.inter$WkDay <- as.numeric(as.factor(Corrgram.data.inter$WkDay) )
 # 
-# 
+# #
 # boxplot(Corrgram.data.inter$Value ~ Corrgram.data.inter$WkDay)
 # 
 # Corrgram.matrix.inter <- t(matrix(Corrgram.data.inter$Value[c(1:(7*floor(nrow(Corrgram.data.inter)/7)))], nrow  = 7))
@@ -58,7 +58,7 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 # corrgram(Corrgram.matrix.inter, order = F,
 #          upper.panel = panel.pie,
 #          lower.panel = panel.conf)
-# 
+
 # 
 # # m2
 # Correlation.inter <- cor(Corrgram.matrix.inter)
@@ -84,7 +84,7 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 
 
 #### Segment for training and testing ####
-Training.End <- "2011-05-08"
+Training.End <- "2012-03-21"
   
 wk.training <- 6
 wk.testing <- 2
