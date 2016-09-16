@@ -84,7 +84,7 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 
 
 #### Segment for training and testing ####
-Training.End <- "2011-05-21"
+Training.End <- "2012-03-21"
   
 wk.training <- 6
 wk.testing <- 2
@@ -118,26 +118,11 @@ hist(LoessSmooth$BoxCox)
 hist(LoessSmooth$LogPlus1)
 
 
-#2. Smoothing
-NOPoint <- 24 # Define locate data-set, i.e., NOPoint/Polynormial
-alpha <- NOPoint/nrow(LoessSmooth)
-lo <- loess(LoessSmooth$LogPlus1 ~ as.numeric(as.POSIXct(LoessSmooth$DateTime, origin = "1970-01-01", tz="GMT")),
-            span = alpha,
-            parametric = F)
-plot(LoessSmooth$LogPlus1,   type ="o", col= "blue",
-     ylim=c(0, max(LoessSmooth$LogPlus1)),
-     main= "Log + Loess")
-lines(lo$fitted, type = "o", pch = 22, lty = 2, col = "red")
-
-
-plot(LoessSmooth$Items, type="o", col = "blue", main="Orignal + Reversed Loess")
-lines(exp(lo$fitted)+1, type = "o", pch = 22, lty = 2, col = "red")
-
 # 
 
 #########################################
 #### State-Space Model ####
-Input.data <- as.numeric(lo$fitted)
+Input.data <- as.numeric(LoessSmooth$LogPlus1)
 Seasonal1 <- 60*24/as.integer(Interval)
 Seasonal2 <- 7*Seasonal1
 Data.msts <- msts(Input.data, seasonal.periods = c(Seasonal1, Seasonal2))
@@ -154,18 +139,6 @@ Results <- exp(as.numeric(Results.temp$mean)) - 1
 Results[which(Results < 0 )] <- 0
 
 Ck <- data.frame(Results.temp$mean, Exp = exp(Results.temp$mean) - 1, Results, Data.testing$Items)
-
-plot(c(lo$fitted, rep(0, length= nrow(Data.testing))),
-     type ="o", col= "blue",  ylim=c(0, max(lo$fitted)), cex.axis=1.5,
-     main = 'Loess + Predicted')
-lines(c(rep(0, length= nrow(Data.training)), Results.temp$mean), type = "o", pch = 22, lty = 2, col = "red")
-
-
-plot(c(exp(lo$fitted)-1, rep(0, length= nrow(Data.testing))),
-     type ="o", col= "blue",  cex.axis=1.5,
-     main = 'Exp_Loess + Exp_Predicted')
-lines(c(rep(0, length= nrow(Data.training)), Results), 
-      type = "o", pch = 22, lty = 2, col = "red")
 
 
 plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
