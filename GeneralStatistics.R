@@ -199,7 +199,7 @@ DailyResult <- aggregate(Data.testing[,c(2,3)],
                 list(format(as.POSIXct(Data.testing$DateTime, origin = "1970-01-01", tz = "GMT"), "%Y-%m-%d")), 
                  sum)
 
-colnames(DailyResult)[1] <- "Date"
+colnames(DailyResult)[1] <- "Date" 
 
 DailyResult$Residual <- DailyResult$Items - DailyResult$Pred
 mean(1 - abs(DailyResult$Residual)/ max(DailyResult$Items))
