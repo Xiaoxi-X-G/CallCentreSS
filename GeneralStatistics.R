@@ -118,21 +118,6 @@ hist(LoessSmooth$BoxCox)
 hist(LoessSmooth$LogPlus1)
 
 
-#2. Smoothing
-# NOPoint <- 24 # Define locate data-set, i.e., NOPoint/Polynormial
-# alpha <- NOPoint/nrow(LoessSmooth)
-# lo <- loess(LoessSmooth$LogPlus1 ~ as.numeric(as.POSIXct(LoessSmooth$DateTime, origin = "1970-01-01", tz="GMT")),
-#             span = alpha,
-#             parametric = F)
-# plot(LoessSmooth$LogPlus1,   type ="o", col= "blue",  
-#      ylim=c(0, max(LoessSmooth$LogPlus1)),
-#      main= "Log + Loess")
-# lines(lo$fitted, type = "o", pch = 22, lty = 2, col = "red")
-# 
-# 
-# plot(LoessSmooth$Items, type="o", col = "blue", main="Orignal + Reversed Loess")
-# lines(exp(lo$fitted)+1, type = "o", pch = 22, lty = 2, col = "red")
-# 
 
 
 #########################################
