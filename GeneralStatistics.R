@@ -12,7 +12,7 @@ library(RODBC)
 odbcDataSources()
 
 conn<-odbcConnect("localdb") #
-DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'Public_Enquiries';", as.is = T)
+DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'Sickness_Reporting';", as.is = T)
 odbcClose(conn)
 
 ######### Clean data
