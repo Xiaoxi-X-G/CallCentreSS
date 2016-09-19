@@ -39,8 +39,8 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 # Corrgram.data.inter <- tapply(as.integer(Corrgram.data.inter.temp$Items),
 #                               as.factor(format(Corrgram.data.inter.temp$DateTime, "%Y-%m-%d")), sum)
 # 
-# Corrgram.data.inter <- aggregate(as.integer(Corrgram.data.inter.temp$Items), 
-#           list(Date=format(Corrgram.data.inter.temp$DateTime, "%Y-%m-%d")), 
+# Corrgram.data.inter <- aggregate(as.integer(Corrgram.data.inter.temp$Items),
+#           list(Date=format(Corrgram.data.inter.temp$DateTime, "%Y-%m-%d")),
 #           FUN=sum)
 # colnames(Corrgram.data.inter)[2] <- "Value"
 # 
@@ -102,8 +102,32 @@ plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
 lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items), 
       type = "o", pch = 22, lty = 2, col = "red")
 
+
+#### Check intreday correlation
+Corrgram.data.inter.temp <- Data.training
+Corrgram.data.inter.temp[,1] <- as.POSIXct(Corrgram.data.inter.temp[,1], origin = "1970-01-01", tz="GMT")
+
+Corrgram.data.inter <- aggregate(as.integer(Corrgram.data.inter.temp$Items),
+                                 list(Date=format(Corrgram.data.inter.temp$DateTime, "%Y-%m-%d")),
+                                 FUN=sum)
+colnames(Corrgram.data.inter)[2] <- "Value"
+
+Corrgram.matrix.inter <- t(matrix(Corrgram.data.inter$Value[c(1:(7*floor(nrow(Corrgram.data.inter)/7)))], nrow  = 7))
+colnames(Corrgram.matrix.inter) <- head(Corrgram.data.inter$WkDay,n=7)
+Correlation.inter <- cor(Corrgram.matrix.inter)
+
+Avg.Correlation.inter <- (sum(abs(Correlation.inter)) - 7) /(7*7-7)
+corrplot(Correlation.inter, order = "hclust")
+
+#############
+#### Preprocessin for Small Data (low interday correlation) ####
+LoessSmooth <- Data.training
+
+
+
+
 ###############
-#### preprocessing ####
+#### preprocessing for Large Data (with strong correlation)####
 # 1. BoxCox
 require(MASS)
 require(forecast)
