@@ -30,7 +30,7 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 
 # ######### Check Intra and Inter day correlation ####
 # require(corrgram) 
-# require(corrplot)
+# require(corrplot) 
 # 
 # ### Inter day
 # Corrgram.data.inter.temp <- DataAllClean
