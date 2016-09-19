@@ -117,11 +117,53 @@ colnames(Corrgram.matrix.inter) <- head(Corrgram.data.inter$WkDay,n=7)
 Correlation.inter <- cor(Corrgram.matrix.inter)
 
 Avg.Correlation.inter <- (sum(abs(Correlation.inter)) - 7) /(7*7-7)
-corrplot(Correlation.inter, order = "hclust")
+#corrplot(Correlation.inter, order = "hclust")
 
 #############
 #### Preprocessin for Small Data (low interday correlation) ####
-LoessSmooth <- Data.training
+LoessSmooth <- Corrgram.data.inter
+#. 1. Smoothing
+NOPoint <- 7 # Define locate data-set, i.e., NOPoint/Polynormial
+alpha <- NOPoint/nrow(LoessSmooth)
+lo <- loess(LoessSmooth$Value ~ as.numeric(as.POSIXct(LoessSmooth$Date, origin = "1970-01-01", tz="GMT")),
+            span = alpha,
+            parametric = F)
+plot(LoessSmooth$Value,   type ="o", col= "blue",
+     ylim=c(0, max(LoessSmooth$Value)),
+     main= "Log + Loess")
+lines(lo$fitted, type = "o", pch = 22, lty = 2, col = "red")
+
+# 2. Daily forecast
+Data.ts <- ts(lo$fitted, frequency = 7)
+Fit.tbats <- tbats(Data.ts, use.box.cox = T, 
+                   use.trend = T,  use.damped.trend= T,
+                   use.arma.errors = T)
+lg <- wk.testing*7
+Results.temp <- forecast(Fit.tbats, h =lg)
+Results <- as.numeric(Results.temp$mean)
+
+
+# 3. Hourly to Daily coefficient
+# ### Intra
+Corrgram.data.intra.temp <- Data.training
+Corrgram.matrix.intra <- t(matrix(as.numeric(Corrgram.data.intra.temp$Items), nrow  = 24*60/as.integer(Interval)))
+
+colnames(Corrgram.matrix.intra) <- seq(from =0, by=as.integer(Interval)/60,
+                                       length = 60/as.integer(Interval)*24)
+
+Coeff.temp <- Corrgram.matrix.intra/rowSums(Corrgram.matrix.intra)
+Correlation.inter.coeff <- matrix(ncol = 24*60/as.integer(Interval), nrow = 7)
+
+for (i in 1:7){ # the intra day coeff of each weekday
+  Correlation.inter.coeff[(8-i),] <- apply(Coeff.temp[seq(nrow(Coeff.temp)-i+1, 1, by = -7), ],
+                                       MARGIN = 2,
+                                       FUN = mean)
+}
+
+
+Results.intra <- Correlation.inter.coeff[rep(c(1:7), length = length(Results)),] *
+  t(matrix(rep(Results, each = 24*60/as.integer(Interval)), nrow = 24*60/as.integer(Interval)))
+
 
 
 
@@ -135,11 +177,11 @@ require(forecast)
 LoessSmooth <- Data.training
 Lambda <- BoxCox.lambda(LoessSmooth$Items)
 LoessSmooth$BoxCox <- BoxCox(LoessSmooth$Items, Lambda)
-LoessSmooth$LogPlus1 <- log(LoessSmooth$Items+1)
+#LoessSmooth$LogPlus1 <- log(LoessSmooth$Items+1)
 
 hist(LoessSmooth$Items)
 hist(LoessSmooth$BoxCox)
-hist(LoessSmooth$LogPlus1)
+#hist(LoessSmooth$LogPlus1)
 
 
 
