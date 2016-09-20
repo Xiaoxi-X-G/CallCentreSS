@@ -86,13 +86,13 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 #### Segment for training and testing ####
 Training.End <- "2012-03-21"
   
-wk.training <- 6
-wk.testing <- 2
-Data.training <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End)- wk.training*7+1 ))
+Days.training <- 6*7-1
+Days.testing <- 2*7
+Data.training <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End)- Days.training+1 ))
                             & (as.Date(DataAllClean$DateTime)<= as.Date(Training.End))),]
 
 Data.testing <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End) + 1 ))
-                                    & (as.Date(DataAllClean$DateTime)<= (as.Date(Training.End) + 7*wk.testing))),]
+                                    & (as.Date(DataAllClean$DateTime)<= (as.Date(Training.End) + Days.testing))),]
 
 
 plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
@@ -134,14 +134,16 @@ plot(LoessSmooth$Value,   type ="o", col= "blue",
 lines(lo$fitted, type = "o", pch = 22, lty = 2, col = "red")
 
 # 2. Daily forecast
+require(forecast)
 Data.ts <- ts(lo$fitted, frequency = 7)
 Fit.tbats <- tbats(Data.ts, use.box.cox = T, 
                    use.trend = T,  use.damped.trend= T,
                    use.arma.errors = T)
-lg <- wk.testing*7
+lg <- Days.testing
 Results.temp <- forecast(Fit.tbats, h =lg)
 Results <- as.numeric(Results.temp$mean)
 
+plot(Results.temp)
 
 # 3. Hourly to Daily coefficient
 # ### Intra
@@ -198,7 +200,7 @@ Fit.tbats <- tbats(Data.msts, use.box.cox = T,
                    use.trend = T,  use.damped.trend= T,
                    use.arma.errors = T)
 
-lg <- wk.testing*7*24*60/as.integer(Interval)
+lg <- Days.testing*24*60/as.integer(Interval)
 
 Results.temp <- forecast(Fit.tbats, h =lg)
 Results <- as.numeric(Results.temp$mean)
