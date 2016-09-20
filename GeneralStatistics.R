@@ -125,6 +125,8 @@ NormalIntradayPrediction_LowCalls <- function(Data.training, lg, Interval){
   # Data.training = dataframe(DateTime, Items), that is cleaned data with fixed interval
   # lg = no. of days to forecast, that starts from next unavailable day
   
+  # output = lg X 60*24/Interval matrix
+  
   ############################################
   ### 1. Aggregate the data to daily level
   ### 2. Smooth the data using Loess, 7-points per ploynomial
