@@ -7,6 +7,7 @@ source(paste(RScriptPath, "/NormalIntradayPrediction_LowCalls.R", sep=""))
 
 library(RODBC)
 library(forecast)
+require(MASS)
 
 ######### link to DB, pull one queue
 odbcDataSources()
@@ -104,24 +105,26 @@ lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items),
 
 
 #### Check intreday correlation
-Corrgram.data.inter.temp <- Data.training
-Corrgram.data.inter.temp[,1] <- as.POSIXct(Corrgram.data.inter.temp[,1], origin = "1970-01-01", tz="GMT")
+Data.training.daily.temp <- Data.training
+Data.training.daily.temp[,1] <- as.POSIXct(Data.training.daily.temp[,1], origin = "1970-01-01", tz="GMT")
 
-Corrgram.data.inter <- aggregate(as.integer(Corrgram.data.inter.temp$Items),
-                                 list(Date=format(Corrgram.data.inter.temp$DateTime, "%Y-%m-%d")),
+Data.training.daily <- aggregate(as.integer(Data.training.daily.temp$Items),
+                                 list(Date=format(Data.training.daily.temp$DateTime, "%Y-%m-%d")),
                                  FUN=sum)
-colnames(Corrgram.data.inter)[2] <- "Value"
+colnames(Data.training.daily)[2] <- "Value"
 
-Corrgram.matrix.inter <- t(matrix(Corrgram.data.inter$Value[c(1:(7*floor(nrow(Corrgram.data.inter)/7)))], nrow  = 7))
-colnames(Corrgram.matrix.inter) <- head(Corrgram.data.inter$WkDay,n=7)
-Correlation.inter <- cor(Corrgram.matrix.inter)
-
-Avg.Correlation.inter <- (sum(abs(Correlation.inter)) - 7) /(7*7-7)
+# Corrgram.matrix.inter <- t(matrix(Corrgram.data.inter$Value[c(1:(7*floor(nrow(Corrgram.data.inter)/7)))], nrow  = 7))
+# colnames(Corrgram.matrix.inter) <- head(Corrgram.data.inter$WkDay,n=7)
+# Correlation.inter <- cor(Corrgram.matrix.inter)
+# 
+# Avg.Correlation.inter <- (sum(abs(Correlation.inter)) - 7) /(7*7-7)
 #corrplot(Correlation.inter, order = "hclust")
 
-
-
-NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)
+if (mean(Data.training.daily$Value, na.rm = T) < 100){
+  NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)
+}else{
+  
+}
   
 
 
@@ -129,9 +132,6 @@ NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)
 ###############
 #### preprocessing for Large Data (with strong correlation)####
 # 1. BoxCox
-require(MASS)
-require(forecast)
-
 LoessSmooth <- Data.training
 Lambda <- BoxCox.lambda(LoessSmooth$Items)
 LoessSmooth$BoxCox <- BoxCox(LoessSmooth$Items, Lambda)
@@ -140,8 +140,6 @@ LoessSmooth$BoxCox <- BoxCox(LoessSmooth$Items, Lambda)
 hist(LoessSmooth$Items)
 hist(LoessSmooth$BoxCox)
 #hist(LoessSmooth$LogPlus1)
-
-
 
 
 ######################################### 
