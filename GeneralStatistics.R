@@ -1,9 +1,9 @@
 rm(list = ls())
 
+RScriptPath<-"C:/Users/ptech3/Dropbox/Ploytech/CallCenter/StateSpace"
 
-RScriptPath<-"C:/gxx/r/project/CallCenter"
 source(paste(RScriptPath, "/FormatTS.R", sep=""))
- 
+source(paste(RScriptPath, "/NormalIntradayPrediction_LowCalls.R", sep="")) 
 
 library(RODBC)
 library(forecast)
@@ -121,136 +121,8 @@ Avg.Correlation.inter <- (sum(abs(Correlation.inter)) - 7) /(7*7-7)
 
 
 
-NormalIntradayPrediction_LowCalls <- function(Data.training, lg, Interval){
-  # Data.training = dataframe(DateTime, Items), that is cleaned data with fixed interval
-  # lg = no. of days to forecast, that starts from next unavailable day
+NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)
   
-  # output = lg X 60*24/Interval matrix
-  
-  ############################################
-  ### 1. Aggregate the data to daily level
-  ### 2. Smooth the data using Loess, 7-points per ploynomial
-  ### 3. Forecast daily arrival calls
-  ### 4. Distributed to each intraday interval
-  ############################################
-  
-  #### 1. Aggregate the data to daily level ####
-  Data.training.daily.temp <- Data.training
-  Data.training.daily.temp[,1] <- as.POSIXct(Data.training.daily.temp[,1], origin = "1970-01-01", tz="GMT")
-  
-  Data.training.daily <- aggregate(as.integer(Data.training.daily.temp$Items),
-                                   list(Date=format(Data.training.daily.temp$DateTime, "%Y-%m-%d")),
-                                   FUN=sum)
-  colnames(Data.training.daily)[2] <- "Value"
-  
-  ### 2. Smooth the data using Loess,  ####
-  NOPoint <- 7 # Define locate data-set, i.e., 7-points per ploynomial
-  alpha <- NOPoint/nrow(Data.training.daily)
-  lo <- loess(Data.training.daily$Value ~ as.numeric(as.POSIXct(Data.training.daily$Date, origin = "1970-01-01", tz="GMT")),
-              span = alpha,
-              parametric = F)
-
-  
-  ### 3. Forecast daily arrival calls ####
-  Data.ts <- ts(lo$fitted, frequency = 7)
-  Fit <- tryCatch(
-    {
-      Fit <-  tbats(Data.ts, use.box.cox = T, 
-                    use.trend = T,  use.damped.trend= T,
-                    use.arma.errors = T)
-    },
-    warning = function(cond){
-      Fit <- ets(Data.ts)
-      return(Fit)
-    },
-    error = function(cond){
-      Fit <- ets(Data.ts)
-      return(Fit)
-    }
-  )
-  Results.temp <- forecast(Fit, h =lg)
-  Results <- as.numeric(Results.temp$mean)
-  Results[which(Results < 0)] <- 0 
-  
-  
-  ### 4. Distributed to each intraday interval ####
-  Data.matrix.intra <- t(matrix(as.numeric(Data.training$Items), nrow  = 24*60/as.integer(Interval)))
-  
-  colnames(Data.matrix.intra) <- seq(from =0, by=as.integer(Interval)/60,
-                                         length = 60/as.integer(Interval)*24)
-  
-  Coeff.temp <- Data.matrix.intra/rowSums(Data.matrix.intra)
-  Coeff.temp[is.nan(Coeff.temp)] <- 0 # for zero call arrivals 
-  
-  Matrix.inter.coeff <- matrix(ncol = 24*60/as.integer(Interval), nrow = 7)
-  
-  for (i in 1:7){ # the intra day coeff of each weekday
-    Matrix.inter.coeff[(8-i),] <- apply(Coeff.temp[seq(nrow(Coeff.temp)-i+1, 1, by = -7), ],
-                                        MARGIN = 2,
-                                        FUN = mean)
-  }
-  
-  
-  Results.intra <- Matrix.inter.coeff[rep(c(1:7), length = length(Results)),] *
-    t(matrix(rep(Results, each = 24*60/as.integer(Interval)), nrow = 24*60/as.integer(Interval)))
-  
-  
-  return(Results.intra)
-}
-
-
-
-#############
-#### Preprocessin for Small Data (low interday correlation) ####
-LoessSmooth <- Corrgram.data.inter
-#. 1. Smoothing
-NOPoint <- 7 # Define locate data-set, i.e., NOPoint/Polynormial
-alpha <- NOPoint/nrow(LoessSmooth)
-lo <- loess(LoessSmooth$Value ~ as.numeric(as.POSIXct(LoessSmooth$Date, origin = "1970-01-01", tz="GMT")),
-            span = alpha,
-            parametric = F)
-plot(LoessSmooth$Value,   type ="o", col= "blue",
-     ylim=c(0, max(LoessSmooth$Value)),
-     main= "Log + Loess")
-lines(lo$fitted, type = "o", pch = 22, lty = 2, col = "red")
-
-# 2. Daily forecast
-require(forecast)
-Data.ts <- ts(lo$fitted, frequency = 7)
-Fit.tbats <- tbats(Data.ts, use.box.cox = T, 
-                   use.trend = T,  use.damped.trend= T,
-                   use.arma.errors = T)
-lg <- Days.testing
-Results.temp <- forecast(Fit.tbats, h =lg)
-Results <- as.numeric(Results.temp$mean)
-
-plot(Results.temp)
-
-# 3. Hourly to Daily coefficient
-# ### Intra
-Corrgram.data.intra.temp <- Data.training
-Corrgram.matrix.intra <- t(matrix(as.numeric(Corrgram.data.intra.temp$Items), nrow  = 24*60/as.integer(Interval)))
-
-colnames(Corrgram.matrix.intra) <- seq(from =0, by=as.integer(Interval)/60,
-                                       length = 60/as.integer(Interval)*24)
-
-Coeff.temp <- Corrgram.matrix.intra/rowSums(Corrgram.matrix.intra)
-Coeff.temp[is.nan(Coeff.temp)] <- 0 # for zero call arrivals 
-
-Correlation.inter.coeff <- matrix(ncol = 24*60/as.integer(Interval), nrow = 7)
-
-for (i in 1:7){ # the intra day coeff of each weekday
-  Correlation.inter.coeff[(8-i),] <- apply(Coeff.temp[seq(nrow(Coeff.temp)-i+1, 1, by = -7), ],
-                                       MARGIN = 2,
-                                       FUN = mean)
-}
-
-
-Results.intra <- Correlation.inter.coeff[rep(c(1:7), length = length(Results)),] *
-  t(matrix(rep(Results, each = 24*60/as.integer(Interval)), nrow = 24*60/as.integer(Interval)))
-
-
-
 
 
 
