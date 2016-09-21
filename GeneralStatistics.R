@@ -25,7 +25,7 @@ LastDate <- as.character(as.Date(tail(DataAll$CellTime, n=1)))
 Interval <- "30"
 
 DataAllClean <- FormatTS(DataAll, FirstDate, LastDate, Interval)
-DataAllClean$Items <- as.numeric(DataAllClean$Items)
+DataAllClean$Items <- as.numeric(DataAllClean$Items) 
  
 
 
