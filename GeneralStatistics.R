@@ -152,7 +152,7 @@ mean(1-abs(Data.testing$Pred - Data.testing$Items)/max(Data.testing$Items, rm.na
 
 
 ### Daily error
-DailyResult <- aggregate(Data.testing[,c(2,3)], 
+DailyResult <- aggregate(Data.testing[,c(2,3)],  
                 list(format(as.POSIXct(Data.testing$DateTime, origin = "1970-01-01", tz = "GMT"), "%Y-%m-%d")), 
                  sum)
 
