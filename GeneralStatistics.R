@@ -121,7 +121,7 @@ colnames(Data.training.daily)[2] <- "Value"
 #corrplot(Correlation.inter, order = "hclust")
 
 if (mean(Data.training.daily$Value, na.rm = T) < 100){
-  NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)
+  Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
   
 }
