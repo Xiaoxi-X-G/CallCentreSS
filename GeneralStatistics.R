@@ -1,18 +1,19 @@
 rm(list = ls())
 
+RScriptPath<-"C:/Users/ptech3/Dropbox/Ploytech/CallCenter/StateSpace"
 
-RScriptPath<-"C:/gxx/r/project/CallCenter"
 source(paste(RScriptPath, "/FormatTS.R", sep=""))
- 
+source(paste(RScriptPath, "/NormalIntradayPrediction_LowCalls.R", sep="")) 
 
 library(RODBC)
-
+library(forecast)
+require(MASS)
 
 ######### link to DB, pull one queue
 odbcDataSources()
 
 conn<-odbcConnect("localdb") #
-DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'Sickness_Reporting';", as.is = T)
+DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'XD_Emergency';", as.is = T)
 odbcClose(conn)
 
 ######### Clean data
@@ -21,7 +22,7 @@ DataAll<-DataAll[order(DataAll[,1]),]
 
 FirstDate <- as.character(as.Date(DataAll$CellTime[1]))
 LastDate <- as.character(as.Date(tail(DataAll$CellTime, n=1)))
-Interval <- "60"
+Interval <- "30"
 
 DataAllClean <- FormatTS(DataAll, FirstDate, LastDate, Interval)
 DataAllClean$Items <- as.numeric(DataAllClean$Items)
@@ -39,8 +40,8 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 # Corrgram.data.inter <- tapply(as.integer(Corrgram.data.inter.temp$Items),
 #                               as.factor(format(Corrgram.data.inter.temp$DateTime, "%Y-%m-%d")), sum)
 # 
-# Corrgram.data.inter <- aggregate(as.integer(Corrgram.data.inter.temp$Items), 
-#           list(Date=format(Corrgram.data.inter.temp$DateTime, "%Y-%m-%d")), 
+# Corrgram.data.inter <- aggregate(as.integer(Corrgram.data.inter.temp$Items),
+#           list(Date=format(Corrgram.data.inter.temp$DateTime, "%Y-%m-%d")),
 #           FUN=sum)
 # colnames(Corrgram.data.inter)[2] <- "Value"
 # 
@@ -86,13 +87,13 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 #### Segment for training and testing ####
 Training.End <- "2012-03-21"
   
-wk.training <- 6
-wk.testing <- 2
-Data.training <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End)- wk.training*7+1 ))
+Days.training <- 6*7-1
+Days.testing <- 2*7 -3
+Data.training <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End)- Days.training+1 ))
                             & (as.Date(DataAllClean$DateTime)<= as.Date(Training.End))),]
 
 Data.testing <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End) + 1 ))
-                                    & (as.Date(DataAllClean$DateTime)<= (as.Date(Training.End) + 7*wk.testing))),]
+                                    & (as.Date(DataAllClean$DateTime)<= (as.Date(Training.End) + Days.testing))),]
 
 
 plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
@@ -102,22 +103,43 @@ plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
 lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items), 
       type = "o", pch = 22, lty = 2, col = "red")
 
-###############
-#### preprocessing ####
-# 1. BoxCox
-require(MASS)
-require(forecast)
 
+#### Check intreday correlation
+Data.training.daily.temp <- Data.training
+Data.training.daily.temp[,1] <- as.POSIXct(Data.training.daily.temp[,1], origin = "1970-01-01", tz="GMT")
+
+Data.training.daily <- aggregate(as.integer(Data.training.daily.temp$Items),
+                                 list(Date=format(Data.training.daily.temp$DateTime, "%Y-%m-%d")),
+                                 FUN=sum)
+colnames(Data.training.daily)[2] <- "Value"
+
+# Corrgram.matrix.inter <- t(matrix(Corrgram.data.inter$Value[c(1:(7*floor(nrow(Corrgram.data.inter)/7)))], nrow  = 7))
+# colnames(Corrgram.matrix.inter) <- head(Corrgram.data.inter$WkDay,n=7)
+# Correlation.inter <- cor(Corrgram.matrix.inter)
+# 
+# Avg.Correlation.inter <- (sum(abs(Correlation.inter)) - 7) /(7*7-7)
+#corrplot(Correlation.inter, order = "hclust")
+
+if (mean(Data.training.daily$Value, na.rm = T) < 100){
+  Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
+}else{
+  
+}
+  
+
+
+
+###############
+#### preprocessing for Large Data (with strong correlation)####
+# 1. BoxCox
 LoessSmooth <- Data.training
 Lambda <- BoxCox.lambda(LoessSmooth$Items)
 LoessSmooth$BoxCox <- BoxCox(LoessSmooth$Items, Lambda)
-LoessSmooth$LogPlus1 <- log(LoessSmooth$Items+1)
+#LoessSmooth$LogPlus1 <- log(LoessSmooth$Items+1)
 
 hist(LoessSmooth$Items)
 hist(LoessSmooth$BoxCox)
-hist(LoessSmooth$LogPlus1)
-
-
+#hist(LoessSmooth$LogPlus1)
 
 
 ######################################### 
@@ -132,7 +154,7 @@ Fit.tbats <- tbats(Data.msts, use.box.cox = T,
                    use.trend = T,  use.damped.trend= T,
                    use.arma.errors = T)
 
-lg <- wk.testing*7*24*60/as.integer(Interval)
+lg <- Days.testing*24*60/as.integer(Interval)
 
 Results.temp <- forecast(Fit.tbats, h =lg)
 Results <- as.numeric(Results.temp$mean)
