@@ -7,7 +7,7 @@ FormatTS <- function(DataAll, FirstDate, LastDate, Interval){
   DataAll[,1] <- as.POSIXct(DataAll[,1], origin = "1970-01-01", tz="GMT")
   DataAll<-DataAll[order(DataAll[,1]),]
   
-  if (format(DataAll[1,1]) != "00:00" ){ # Force DataAll start with n:00:00 to solve cut() issues
+  if (format(DataAll[1,1], "%M:%S") != "00:00" ){ # Force DataAll start with n:00:00 to solve cut() issues
     Insert.row <- data.frame(CellTime =  as.POSIXct(paste(format(DataAll[1,1], "%Y-%m-%d"), paste(format(DataAll[1,1], "%H"), ":00:00", sep=""))
                                                    , origin = "1970-01-01", tz="GMT"),
                             Tot_num_incoming = 0,
