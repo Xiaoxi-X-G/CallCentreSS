@@ -88,7 +88,7 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 
 
 #### Segment for training and testing ####
-Training.End <- "2012-03-21"
+Training.End <- "2012-06-21"
   
 Days.training <- 6*7-1
 Days.testing <- 2*7 -3
@@ -116,20 +116,13 @@ Data.training.daily <- aggregate(as.integer(Data.training.daily.temp$Items),
                                  FUN=sum)
 colnames(Data.training.daily)[2] <- "Value"
 
-# Corrgram.matrix.inter <- t(matrix(Corrgram.data.inter$Value[c(1:(7*floor(nrow(Corrgram.data.inter)/7)))], nrow  = 7))
-# colnames(Corrgram.matrix.inter) <- head(Corrgram.data.inter$WkDay,n=7)
-# Correlation.inter <- cor(Corrgram.matrix.inter)
-# 
-# Avg.Correlation.inter <- (sum(abs(Correlation.inter)) - 7) /(7*7-7)
-#corrplot(Correlation.inter, order = "hclust")
+
 
 if (mean(Data.training.daily$Value, na.rm = T) < 100){
   Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
   Results <- NormalIntradayPrediction_LargeCalls(Data.training, Days.testing, Interval)
 }
-
-  
 
 
 
@@ -158,7 +151,6 @@ qqnorm(Residual)
 mean(1-abs(Data.testing$Pred - Data.testing$Items)/max(Data.testing$Items, rm.na=T), rm.na=T)
 
 
-
 ### Daily error
 DailyResult <- aggregate(Data.testing[,c(2,3)], 
                 list(format(as.POSIXct(Data.testing$DateTime, origin = "1970-01-01", tz = "GMT"), "%Y-%m-%d")), 
@@ -169,70 +161,3 @@ colnames(DailyResult)[1] <- "Date"
 DailyResult$Residual <- DailyResult$Items - DailyResult$Pred
 mean(1 - abs(DailyResult$Residual)/ max(DailyResult$Items))
 
-
-# FormatTS <- function(DataAll, FirstDate, LastDate, Interval){
-# ### Format the time series DataAll with fixed Interval from FirstDate to LastDate
-# ### DataAll = dataframe(DateTime, Value)  
-# ### FirstDate, LastDate = Date 
-# ### Interval = int & (>=2) & (  residual(24*60/Interval) == 0 )     
-#   
-#   DataAll[,1] <- as.POSIXct(DataAll[,1], origin = "1970-01-01", tz="GMT")
-#   DataAll<-DataAll[order(DataAll[,1]),]
-#   
-#   ### Middle
-#   DataAllClean.temp <- data.frame(table(cut(DataAll[,1], breaks="min")))
-#   DataAllClean.temp[which(DataAllClean.temp[,2]==1),2] <- DataAll[,2]
-#   DataAllClean.temp[,1] <- as.POSIXct(DataAllClean.temp[,1], origin = "1970-01-01", tz="GMT")
-#   
-#   DataAllClean <- aggregate(DataAllClean.temp[, 2], list(DateTime=cut(DataAllClean.temp[,1], breaks = paste(Interval, "mins"))), FUN=sum )
-#   DataAllClean$x <- as.character(DataAllClean$x)
-#   
-#   ### For head and tails
-#   temp1 <- as.POSIXct(c(paste(FirstDate, "00:00:00"), as.character(DataAllClean[1,1])), origin = "1970-01-01", tz="GMT")
-#   Head.temp <- data.frame(table(cut(temp1, breaks= paste(Interval, "mins"))))
-#   colnames(Head.temp) <- c("DateTime", "x")
-#   Head <- Head.temp[-nrow(Head.temp),]
-#   Head$DateTime <- as.character(Head$DateTime)
-#   Head[1,2] <- 0
-#   
-#   temp2 <- as.POSIXct(c(as.character(DataAllClean[nrow(DataAllClean),1]), paste(as.Date(LastDate) + 1, "00:00:00")), origin = "1970-01-01", tz="GMT")
-#   tail.temp <- data.frame(table(cut(temp2, breaks= paste(Interval, "mins"))))
-#   colnames(tail.temp) <- c("DateTime", "x")
-#   Tail <- tail.temp[-which(tail.temp$x==1),]
-#   Tail$DateTime <- as.character(Tail$DateTime)
-#   
-#   DataAllCleanOutput <- rbind.data.frame(Head, DataAllClean, Tail, stringsAsFactors = F)
-#   colnames(DataAllCleanOutput)[2] <- "Items"
-#   
-#   return(DataAllCleanOutput)
-# }
-# 
-# #DataAll <- DataAll[-which(DataAll$Tot_num_incoming==0),]
-
-
-
-
-# ### middle
-# DataAllClean.temp <- data.frame(table(cut(DataAll[,1], breaks="min")))
-# DataAllClean.temp[which(DataAllClean.temp[,2]==1),2] <- DataAll[,2]
-# DataAllClean.temp[,1] <- as.POSIXct(DataAllClean.temp[,1], origin = "1970-01-01", tz="GMT")
-# 
-# DataAllClean <- aggregate(DataAllClean.temp[, 2], list(DateTime=cut(DataAllClean.temp[,1], breaks = paste(Interval, "mins"))), FUN=sum )
-# DataAllClean$x <- as.character(DataAllClean$x)
-# 
-# ### For head and tails
-# temp1 <- as.POSIXct(c(paste(FirstDate, "00:00:00"), as.character(DataAllClean[1,1])), origin = "1970-01-01", tz="GMT")
-# Head.temp <- data.frame(table(cut(temp1, breaks= paste(Interval, "mins"))))
-# colnames(Head.temp) <- c("DateTime", "x")
-# Head <- Head.temp[-nrow(Head.temp),]
-# Head$DateTime <- as.character(Head$DateTime)
-# Head[1,2] <- 0
-# 
-# temp2 <- as.POSIXct(c(as.character(DataAllClean[nrow(DataAllClean),1]), paste(as.Date(LastDate) + 1, "00:00:00")), origin = "1970-01-01", tz="GMT")
-# tail.temp <- data.frame(table(cut(temp2, breaks= paste(Interval, "mins"))))
-# colnames(tail.temp) <- c("DateTime", "x")
-# Tail <- tail.temp[-which(tail.temp$x==1),]
-# Tail$DateTime <- as.character(Tail$DateTime)
-# 
-# DataAllCleanOutput <- rbind.data.frame(Head, DataAllClean, Tail, stringsAsFactors = F)
-# colnames(DataAllCleanOutput)[2] <- "Items"
