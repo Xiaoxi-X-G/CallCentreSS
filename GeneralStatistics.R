@@ -4,6 +4,9 @@ RScriptPath<-"C:/Users/ptech3/Dropbox/Ploytech/CallCenter/StateSpace"
 
 source(paste(RScriptPath, "/FormatTS.R", sep=""))
 source(paste(RScriptPath, "/NormalIntradayPrediction_LowCalls.R", sep="")) 
+source(paste(RScriptPath, "/NormalIntradayPrediction_LargeCalls.R", sep="")) 
+
+
 
 library(RODBC)
 library(forecast)
@@ -13,7 +16,7 @@ require(MASS)
 odbcDataSources()
 
 conn<-odbcConnect("localdb") #
-DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'XD_Emergency';", as.is = T)
+DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'Public_Incident';", as.is = T)
 odbcClose(conn)
 
 ######### Clean data
@@ -123,8 +126,9 @@ colnames(Data.training.daily)[2] <- "Value"
 if (mean(Data.training.daily$Value, na.rm = T) < 100){
   Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
-  
+  Results <- NormalIntradayPrediction_LargeCalls(Data.training, Days.testing, Interval)
 }
+
   
 NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
   # Data.training = dataframe(DateTime, Items), that is cleaned data with fixed interval
@@ -168,7 +172,7 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
     }
   )
   
-  Results.temp <- forecast(Fit, h =lg)
+  Results.temp <- forecast(Fit, h =lg*24*60/as.integer(Interval))
 
   ### 3. Inverse BoxCox
   Results <- InvBoxCox(as.numeric(Results.temp$mean), Lambda)

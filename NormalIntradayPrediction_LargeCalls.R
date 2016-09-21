@@ -40,7 +40,7 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
     }
   )
   
-  Results.temp <- forecast(Fit, h =lg)
+  Results.temp <- forecast(Fit, h =lg*24*60/as.integer(Interval))
   
   ### 3. Inverse BoxCox
   Results <- InvBoxCox(as.numeric(Results.temp$mean), Lambda)
