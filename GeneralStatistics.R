@@ -160,4 +160,5 @@ colnames(DailyResult)[1] <- "Date"
 
 DailyResult$Residual <- DailyResult$Items - DailyResult$Pred
 mean(1 - abs(DailyResult$Residual)/ max(DailyResult$Items))
+acf(DailyResult$Residual)
 
