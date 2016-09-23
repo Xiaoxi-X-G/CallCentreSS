@@ -111,37 +111,31 @@ lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items),
 
 
 
-###### Exponential Day ######
 StartDate <- format(as.POSIXct(Data.testing[1,1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")
 FinishDate <- format(as.POSIXct(Data.testing[nrow(Data.testing),1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")
 
 FirstDate <- format(as.POSIXct(Data.training[1,1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")
 LastDate <- format(as.POSIXct(Data.training[nrow(Data.training),1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")  
 
+
+###### Exponential Day forecast ######
 ExceptionalDatesCSV <- read.csv("ExceptionalDatesRight.csv")
 ExceptionalDayandEffects <- ExceptionalDayandEffectFormat(ExceptionalDatesCSV, Format.FirstDate, FinishDate)
-####
 
-# 1. Check if abnormalday forecasting is requried
+
+# Check if abnormalday forecasting is requried
 if (length(which((ExceptionalDayandEffects[[2]]$Dates>=as.Date(StartDate))
                  &(ExceptionalDayandEffects[[2]]$Dates<=as.Date(FinishDate)))) == 0){
-  AbnormalResults <- list(NA, NA)
+  AbnormalResults <- NA
 }else{
-  
   AbnormalResults.temp1 <- AbnormalPred(DataAllClean, AbnormalInfo=ExceptionalDayandEffects[[1]], 
-                                        Interval, Format.FirstDate, LastDate)
-  
+                                        Interval, Format.FirstDate, LastDate, StartDate, FinishDate)
   AbnormalResults.temp2 <- AbnormalPred(DataAllClean, AbnormalInfo=ExceptionalDayandEffects[[2]], 
-                                        Interval, Format.FirstDate, LastDate)
+                                        Interval, Format.FirstDate, LastDate, StartDate, FinishDate)
   
-  AbnormalResults <- list(AbnormalResults.temp1, AbnormalResults.temp2)
+  AbnormalResults <- cbind(AbnormalResults.temp1, AbnormalResults.temp2)
   
 }
-
-
-
-
-
 
 
 #### Check intreday correlation
