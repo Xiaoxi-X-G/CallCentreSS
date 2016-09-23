@@ -125,70 +125,22 @@ ExceptionalDayandEffects <- ExceptionalDayandEffectFormat(ExceptionalDatesCSV, F
 # 1. Check if abnormalday forecasting is requried
 if (length(which((ExceptionalDayandEffects[[2]]$Dates>=as.Date(StartDate))
                  &(ExceptionalDayandEffects[[2]]$Dates<=as.Date(FinishDate)))) == 0){
-  AbnormalResults <- NA
+  AbnormalResults <- list(NA, NA)
 }else{
-  AbnormalInfo <- ExceptionalDayandEffects[[2]]
-  Ind <- unique(AbnormalInfo[,3])
-  ## Initialize a matrix to store abnormal forecast results
-  AbnormalResults <- matrix(ncol = length(Ind), nrow = 60*24/as.integer(Interval))
-  colnames(AbnormalResults) <- Ind
-  if (length(Ind) > 0){
-    for (i in Ind){
-      AbnormalDate.temp <- AbnormalInfo[which(AbnormalInfo[,3] == i),1]
-      AbnormalDate <- AbnormalDate.temp[which((AbnormalDate.temp >= Format.FirstDate)
-                                              & (AbnormalDate.temp <= LastDate))]
-      ## Initialize a matrix to store abnormal data
-      AbnormalHistory <- matrix(ncol=length(AbnormalDate), nrow = 60*24/as.integer(Interval))
-      
-      if (length(AbnormalDate) > 0){
-        for (j in (1:length(AbnormalDate))){
-          AbnormalHistory[, j] <- 
-            DataAllClean$Items[which(format(as.POSIXct(DataAllClean$DateTime, origin = "1970-01-01", tz = "GMT"), "%Y-%m-%d") 
-                                     == AbnormalDate[j] )]
-        }
-        colnames(AbnormalHistory) <- as.character(AbnormalDate)
-        
-        ## compute Abnormal results 
-        AbnormalResults[,i] <- AbnormalHistory %*% ExponentialCoeff(length(AbnormalDate),0.6)
-      }
-    }
-  }
+  
+  AbnormalResults.temp1 <- AbnormalPred(DataAllClean, AbnormalInfo=ExceptionalDayandEffects[[1]], 
+                                        Interval, Format.FirstDate, LastDate)
+  
+  AbnormalResults.temp2 <- AbnormalPred(DataAllClean, AbnormalInfo=ExceptionalDayandEffects[[2]], 
+                                        Interval, Format.FirstDate, LastDate)
+  
+  AbnormalResults <- list(AbnormalResults.temp1, AbnormalResults.temp2)
   
 }
 
 
-AbnormalPred <- function(DataAllClean, AbnormalInfo, Interval, Format.FirstDate, LastDate){
-  
-  
-  AbnormalInfo <- ExceptionalDayandEffects[[2]]
-  Ind <- unique(AbnormalInfo[,3])
-  ## Initialize a matrix to store abnormal forecast results
-  AbnormalResults <- matrix(ncol = length(Ind), nrow = 60*24/as.integer(Interval))
-  colnames(AbnormalResults) <- Ind
-  if (length(Ind) > 0){
-    for (i in Ind){
-      AbnormalDate.temp <- AbnormalInfo[which(AbnormalInfo[,3] == i),1]
-      AbnormalDate <- AbnormalDate.temp[which((AbnormalDate.temp >= Format.FirstDate)
-                                              & (AbnormalDate.temp <= LastDate))]
-      ## Initialize a matrix to store abnormal data
-      AbnormalHistory <- matrix(ncol=length(AbnormalDate), nrow = 60*24/as.integer(Interval))
-      
-      if (length(AbnormalDate) > 0){
-        for (j in (1:length(AbnormalDate))){
-          AbnormalHistory[, j] <- 
-            DataAllClean$Items[which(format(as.POSIXct(DataAllClean$DateTime, origin = "1970-01-01", tz = "GMT"), "%Y-%m-%d") 
-                                     == AbnormalDate[j] )]
-        }
-        colnames(AbnormalHistory) <- as.character(AbnormalDate)
-        
-        ## compute Abnormal results 
-        AbnormalResults[,i] <- AbnormalHistory %*% ExponentialCoeff(length(AbnormalDate),0.6)
-      }
-    }
-  }
-  
-  return(AbnormalResults)
-}
+
+
 
 
 
