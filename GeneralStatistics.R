@@ -5,7 +5,8 @@ RScriptPath<-"C:/Users/ptech3/Dropbox/Ploytech/CallCenter/StateSpace"
 source(paste(RScriptPath, "/FormatTS.R", sep=""))
 source(paste(RScriptPath, "/NormalIntradayPrediction_LowCalls.R", sep="")) 
 source(paste(RScriptPath, "/NormalIntradayPrediction_LargeCalls.R", sep="")) 
-
+source(paste(RScriptPath, "/ExceptionalDayandEffectFormat.R", sep="")) 
+source(paste(RScriptPath, "/ExponentialCoeff.R", sep="")) 
 
 
 library(RODBC)
@@ -23,13 +24,15 @@ odbcClose(conn)
 DataAll[,1] <- as.POSIXct(DataAll[,1], origin = "1970-01-01", tz="GMT")
 DataAll<-DataAll[order(DataAll[,1]),]
 
-FirstDate <- as.character(as.Date(DataAll$CellTime[1]))
-LastDate <- as.character(as.Date(tail(DataAll$CellTime, n=1)))
+Format.FirstDate <- as.character(as.Date(DataAll$CellTime[1]))
+Format.LastDate <- as.character(as.Date(tail(DataAll$CellTime, n=1)))
 Interval <- "30"
 
-DataAllClean <- FormatTS(DataAll, FirstDate, LastDate, Interval)
+DataAllClean <- FormatTS(DataAll, Format.FirstDate, Format.LastDate, Interval)
 DataAllClean$Items <- as.numeric(DataAllClean$Items) 
- 
+
+
+
 
 
 # ######### Check Intra and Inter day correlation ####
@@ -107,6 +110,56 @@ lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items),
       type = "o", pch = 22, lty = 2, col = "red")
 
 
+
+###### Exponential Day ######
+StartDate <- format(as.POSIXct(Data.testing[1,1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")
+FinishDate <- format(as.POSIXct(Data.testing[nrow(Data.testing),1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")
+
+FirstDate <- format(as.POSIXct(Data.training[1,1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")
+LastDate <- format(as.POSIXct(Data.training[nrow(Data.training),1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")  
+
+ExceptionalDatesCSV <- read.csv("ExceptionalDatesRight.csv")
+ExceptionalDayandEffects <- ExceptionalDayandEffectFormat(ExceptionalDatesCSV, Format.FirstDate, FinishDate)
+####
+
+# 1. Check if abnormalday forecasting is requried
+if (length(which((ExceptionalDayandEffects[[2]]$Dates>=as.Date(StartDate))
+                 &(ExceptionalDayandEffects[[2]]$Dates<=as.Date(FinishDate)))) == 0){
+  AbnormalResults <- NA
+}else{
+  AbnormalInfo <- ExceptionalDayandEffects[[1]]
+  Ind <- unique(AbnormalInfo[,3])
+  ## Initialize a matrix to store abnormal forecast results
+  AbnormalResults <- matrix(ncol = length(Ind), nrow = 60*24/as.integer(Interval))
+  colnames(AbnormalResults) <- Ind
+  if (length(Ind) > 0){
+    for (i in Ind){
+      AbnormalDate.temp <- AbnormalInfo[which(AbnormalInfo[,3] == i),1]
+      AbnormalDate <- AbnormalDate.temp[which((AbnormalDate.temp >= Format.FirstDate)
+                                              & (AbnormalDate.temp <= LastDate))]
+      ## Initialize a matrix to store abnormal data
+      AbnormalHistory <- matrix(ncol=length(AbnormalDate), nrow = 60*24/as.integer(Interval))
+      
+      for (j in (1:length(AbnormalDate))){
+        AbnormalHistory[, j] <- 
+          DataAllClean$Items[which(format(as.POSIXct(DataAllClean$DateTime, origin = "1970-01-01", tz = "GMT"), "%Y-%m-%d") 
+                                   == AbnormalDate[j] )]
+      }
+      colnames(AbnormalHistory) <- as.character(AbnormalDate)
+      
+      ## compute Abnormal results
+      AbnormalResults[,i] <- AbnormalHistory %*% ExponentialCoeff(length(AbnormalDate),0.6)
+      
+    }
+  }
+  
+}
+
+
+
+
+
+
 #### Check intreday correlation
 Data.training.daily.temp <- Data.training
 Data.training.daily.temp[,1] <- as.POSIXct(Data.training.daily.temp[,1], origin = "1970-01-01", tz="GMT")
@@ -118,6 +171,7 @@ colnames(Data.training.daily)[2] <- "Value"
 
 
 
+###### Intraday forecast  ########
 if (mean(Data.training.daily$Value, na.rm = T) < 100){
   Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
@@ -137,7 +191,7 @@ lines(as.numeric(Results), type = "o", pch = 22,  col = "green")
 
 
   
-######## Residual check - per hours
+######## Residual check - per hours ######
 RMSE <- sqrt(mean((Data.testing$Items-Results)^2, na.rm =T))
 Data.testing$Pred <- Results
 

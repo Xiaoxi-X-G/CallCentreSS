@@ -1,4 +1,4 @@
-ExceptionalDayandEffectFormat<-function(ExceptionalDatesCSV, FirstDate, FinishDateT){
+ExceptionalDayandEffectFormat<-function(ExceptionalDays, FirstDate, FinishDateT){
   ## ExceptionalDatesCSV = ["ExceptionalDate","Annual","ForecastIgnoreHistory","ForecastDateSpecific","ExceptionalDayTypeID"]
   ## FirstDate, FinishDate.T = Character
   ## Output = list(ExceptionalDays, ProximityDays)
@@ -24,19 +24,16 @@ ExceptionalDayandEffectFormat<-function(ExceptionalDatesCSV, FirstDate, FinishDa
   ExceptionalDays$ExceptionalDate<- as.Date(ExceptionalDays$ExceptionalDate)
   ExceptionalDays$Annual <- as.logical((ExceptionalDays$Annual))
   ExceptionalDays$Annual[is.na(ExceptionalDays$Annual)]<-FALSE
-  print(ExceptionalDays)  
-  
+
   
   ###### Deal with duplicated FALSE and TRUE at Annual: delete FALSE row if same day Annual is TRUE
   FalseAnnulInd <- which(! ExceptionalDays$Annual)
   TrueAnnulInd <- which(ExceptionalDays$Annual)
-  print(FalseAnnulInd)
-  print(TrueAnnulInd)
-  
+
   if (length(FalseAnnulInd)>0){
     DeleteInd <-c()
     for (i in 1 : length(FalseAnnulInd)){
-      print(format(ExceptionalDays$ExceptionalDate[FalseAnnulInd[i]], "%m-%d"))
+      #print(format(ExceptionalDays$ExceptionalDate[FalseAnnulInd[i]], "%m-%d"))
       if(format(ExceptionalDays$ExceptionalDate[FalseAnnulInd[i]], "%m-%d") %in% format(ExceptionalDays$ExceptionalDate[TrueAnnulInd], "%m-%d")){
         DeleteInd<-c(DeleteInd, FalseAnnulInd[i])
       }
