@@ -1,4 +1,4 @@
-AbnormalPred <- function(DataAllClean, AbnormalInfo, Interval, Format.FirstDate, LastDate){
+AbnormalPred <- function(DataAllClean, AbnormalInfo, Interval, Format.FirstDate, LastDate, StartDate, FinishDate){
   #### DataAllClean = data.frame(DataTime, Items)
   #### AbnormalInfo = data.frame(Dates, Annual, ....TypeID)
   #### Interval = Breakdown interval, character
@@ -7,11 +7,15 @@ AbnormalPred <- function(DataAllClean, AbnormalInfo, Interval, Format.FirstDate,
   
   
   #######################################################################
+  ##### Find Targeted Ind
   ##### Use TypeID to group data and then apply weighted smoothing to forecast
   #######################################################################
   
   
-  Ind <- unique(AbnormalInfo[,3])
+  Ind <- unique(AbnormalInfo[which((AbnormalInfo[,1] >= as.Date(StartDate))
+                                   &(AbnormalInfo[,1] <= as.Date(FinishDate))), 
+                             3])
+  
   ## Initialize a matrix to store abnormal forecast results
   AbnormalResults <- matrix(ncol = length(Ind), nrow = 60*24/as.integer(Interval))
   colnames(AbnormalResults) <- Ind
