@@ -118,6 +118,11 @@ FirstDate <- format(as.POSIXct(Data.training[1,1], origin = "1970-01-01", tz="GM
 LastDate <- format(as.POSIXct(Data.training[nrow(Data.training),1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")  
 
 
+
+
+
+
+###########################################################################
 ###### Exponential Day forecast ######
 ExceptionalDatesCSV <- read.csv("ExceptionalDatesRight.csv")
 ExceptionalDayandEffects <- ExceptionalDayandEffectFormat(ExceptionalDatesCSV, Format.FirstDate, FinishDate)
@@ -126,7 +131,7 @@ ExceptionalDayandEffects <- ExceptionalDayandEffectFormat(ExceptionalDatesCSV, F
 # Check if abnormalday forecasting is requried
 if (length(which((ExceptionalDayandEffects[[2]]$Dates>=as.Date(StartDate))
                  &(ExceptionalDayandEffects[[2]]$Dates<=as.Date(FinishDate)))) == 0){
-  AbnormalResults <- NA
+  AbnormalResults <- c()
 }else{
   AbnormalResults.temp1 <- AbnormalPred(DataAllClean, AbnormalInfo=ExceptionalDayandEffects[[1]], 
                                         Interval, Format.FirstDate, LastDate, StartDate, FinishDate)
@@ -134,11 +139,12 @@ if (length(which((ExceptionalDayandEffects[[2]]$Dates>=as.Date(StartDate))
                                         Interval, Format.FirstDate, LastDate, StartDate, FinishDate)
   
   AbnormalResults <- cbind(AbnormalResults.temp1, AbnormalResults.temp2)
-  
 }
 
 
-#### Check intreday correlation
+
+######################################################################
+#### Check intreday correlation ####
 Data.training.daily.temp <- Data.training
 Data.training.daily.temp[,1] <- as.POSIXct(Data.training.daily.temp[,1], origin = "1970-01-01", tz="GMT")
 
@@ -148,13 +154,42 @@ Data.training.daily <- aggregate(as.integer(Data.training.daily.temp$Items),
 colnames(Data.training.daily)[2] <- "Value"
 
 
-
+#####################################################################
 ###### Intraday forecast  ########
 if (mean(Data.training.daily$Value, na.rm = T) < 100){
   Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
   Results <- NormalIntradayPrediction_LargeCalls(Data.training, Days.testing, Interval)
 }
+
+
+##############################################
+####### Replace by Abnormal Results if required ##########
+if(length(AbnormalResults)>0){
+  Results.matrix <- matrix(Results, nrow = 24*60/as.integer(Interval))
+  colnames(Results.matrix) <- as.character(seq(as.Date(StartDate), as.Date(FinishDate), by = "1 day"))
+
+  temp.exp1 <- ExceptionalDayandEffects[[1]]
+  temp.exp1[,1] <- as.character(temp.exp1[,1])
+  colnames(temp.exp1) <- c("Date", "Annual", "TypeID")
+  temp.exp2 <- ExceptionalDayandEffects[[2]]
+  temp.exp2[,1] <- as.character(temp.exp2[,1])
+  colnames(temp.exp2) <- c("Date", "Annual", "TypeID")
+  
+  temp.exp12 <- rbind(temp.exp1, temp.exp2)
+  
+  AbnormalDays <- temp.exp12[which((as.Date(temp.exp12[,1]) >= as.Date(StartDate))
+                                   &(as.Date(temp.exp12[,1]) <= as.Date(FinishDate))),
+                             1]
+  
+    for (m in AbnormalDays){
+    
+  }
+}
+
+
+
+
 
 
 
@@ -168,7 +203,7 @@ plot(Data.testing$Items, type = "o", col = "red")
 lines(as.numeric(Results), type = "o", pch = 22,  col = "green")
 
 
-  
+#################################################################  
 ######## Residual check - per hours ######
 RMSE <- sqrt(mean((Data.testing$Items-Results)^2, na.rm =T))
 Data.testing$Pred <- Results
