@@ -1,4 +1,9 @@
 AbnormalPred <- function(DataAllClean, AbnormalInfo, Interval, Format.FirstDate, LastDate, StartDate, FinishDate){
+#### Output:
+  #### AbnormalResults = matrix of Ind X 60*24/as.integer(Interval)
+  
+  
+##### Inputs:
   #### DataAllClean = data.frame(DataTime, Items)
   #### AbnormalInfo = data.frame(Dates, Annual, ....TypeID)
   #### Interval = Breakdown interval, character
