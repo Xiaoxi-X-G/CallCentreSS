@@ -5,6 +5,11 @@ RScriptPath<-"C:/Users/ptech3/Dropbox/Ploytech/CallCenter/StateSpace"
 source(paste(RScriptPath, "/FormatTS.R", sep=""))
 source(paste(RScriptPath, "/NormalIntradayPrediction_LowCalls.R", sep="")) 
 source(paste(RScriptPath, "/NormalIntradayPrediction_LargeCalls.R", sep="")) 
+source(paste(RScriptPath, "/ExceptionalDayandEffectFormat.R", sep="")) 
+source(paste(RScriptPath, "/ExponentialCoeff.R", sep="")) 
+source(paste(RScriptPath, "/UpdateResults.R", sep="")) 
+source(paste(RScriptPath, "/AbnormalPred.R", sep="")) 
+
 
 
 
@@ -23,13 +28,15 @@ odbcClose(conn)
 DataAll[,1] <- as.POSIXct(DataAll[,1], origin = "1970-01-01", tz="GMT")
 DataAll<-DataAll[order(DataAll[,1]),]
 
-FirstDate <- as.character(as.Date(DataAll$CellTime[1]))
-LastDate <- as.character(as.Date(tail(DataAll$CellTime, n=1)))
-Interval <- "30"
+Format.FirstDate <- as.character(as.Date(DataAll$CellTime[1]))
+Format.LastDate <- as.character(as.Date(tail(DataAll$CellTime, n=1)))
+Interval <- "60"
 
-DataAllClean <- FormatTS(DataAll, FirstDate, LastDate, Interval)
+DataAllClean <- FormatTS(DataAll, Format.FirstDate, Format.LastDate, Interval)
 DataAllClean$Items <- as.numeric(DataAllClean$Items) 
- 
+
+
+
 
 
 # ######### Check Intra and Inter day correlation ####
@@ -107,7 +114,41 @@ lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items),
       type = "o", pch = 22, lty = 2, col = "red")
 
 
-#### Check intreday correlation
+
+StartDate <- format(as.POSIXct(Data.testing[1,1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")
+FinishDate <- format(as.POSIXct(Data.testing[nrow(Data.testing),1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")
+
+FirstDate <- format(as.POSIXct(Data.training[1,1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")
+LastDate <- format(as.POSIXct(Data.training[nrow(Data.training),1], origin = "1970-01-01", tz="GMT") , "%Y-%m-%d")  
+
+
+
+
+
+
+###########################################################################
+###### Exponential Day forecast ######
+ExceptionalDatesCSV <- read.csv("ExceptionalDatesRight.csv")
+ExceptionalDayandEffects <- ExceptionalDayandEffectFormat(ExceptionalDatesCSV, Format.FirstDate, FinishDate)
+
+
+# Check if abnormalday forecasting is requried
+if (length(which((ExceptionalDayandEffects[[2]]$Dates>=as.Date(StartDate))
+                 &(ExceptionalDayandEffects[[2]]$Dates<=as.Date(FinishDate)))) == 0){
+  AbnormalResults <- c()
+}else{
+  AbnormalResults.temp1 <- AbnormalPred(DataAllClean, AbnormalInfo=ExceptionalDayandEffects[[1]], 
+                                        Interval, Format.FirstDate, LastDate, StartDate, FinishDate)
+  AbnormalResults.temp2 <- AbnormalPred(DataAllClean, AbnormalInfo=ExceptionalDayandEffects[[2]], 
+                                        Interval, Format.FirstDate, LastDate, StartDate, FinishDate)
+  
+  AbnormalResults <- cbind(AbnormalResults.temp1, AbnormalResults.temp2)
+}
+
+
+
+######################################################################
+#### Check intreday correlation ####
 Data.training.daily.temp <- Data.training
 Data.training.daily.temp[,1] <- as.POSIXct(Data.training.daily.temp[,1], origin = "1970-01-01", tz="GMT")
 
@@ -117,7 +158,8 @@ Data.training.daily <- aggregate(as.integer(Data.training.daily.temp$Items),
 colnames(Data.training.daily)[2] <- "Value"
 
 
-
+#####################################################################
+###### Intraday forecast  ########
 if (mean(Data.training.daily$Value, na.rm = T) < 100){
   Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
@@ -125,19 +167,40 @@ if (mean(Data.training.daily$Value, na.rm = T) < 100){
 }
 
 
+##############################################
+####### Replace by Abnormal Results if required ##########
+if(length(AbnormalResults)>0){
+  Results.finial <- UpdateResults(Results, AbnormalResults, ExceptionalDayandEffects, StartDate, FinishDate, Interval)
+}else{
+  Results.finial <- Results
+}
+
+Results.finial.format <- 
+  data.frame(DateTime = seq(as.POSIXct(paste(StartDate, "00:00:00"), origin="1970-01-01", tz="GMT"),
+                            by = paste(Interval, "mins"),
+                            length.out = length(Results.finial)),
+             Value = Results.finial,
+             stringsAsFactors = F)
+
+
+
+
+
+
+####### Plot #######
 
 plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
      type ="o", col= "blue",  ylim=c(0, max(Data.training$Items)), cex.axis=1.5)
 lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items), type = "o", pch = 22, lty = 2, col = "red")
-lines(c(rep(0, length= nrow(Data.training)), Results), type = "o", pch = 22,  col = "green")
+lines(c(rep(0, length= nrow(Data.training)), Results.finial.format[,2]), type = "o", pch = 22,  col = "green")
 
 
 plot(Data.testing$Items, type = "o", col = "red")
-lines(as.numeric(Results), type = "o", pch = 22,  col = "green")
+lines(as.numeric(Results.finial.format[,2]), type = "o", pch = 22,  col = "green")
 
 
-  
-######## Residual check - per hours
+#################################################################  
+######## Residual check - per hours ######
 RMSE <- sqrt(mean((Data.testing$Items-Results)^2, na.rm =T))
 Data.testing$Pred <- Results
 
@@ -160,4 +223,5 @@ colnames(DailyResult)[1] <- "Date"
 
 DailyResult$Residual <- DailyResult$Items - DailyResult$Pred
 mean(1 - abs(DailyResult$Residual)/ max(DailyResult$Items))
+acf(DailyResult$Residual)
 
