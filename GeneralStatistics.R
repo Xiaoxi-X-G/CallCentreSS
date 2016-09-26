@@ -127,7 +127,7 @@ LastDate <- format(as.POSIXct(Data.training[nrow(Data.training),1], origin = "19
 
 ###########################################################################
 ###### Exponential Day forecast ###### 
-ExceptionalDatesCSV <- read.csv("ExceptionalDatesRight.csv")
+ExceptionalDatesCSV <- read.csv("ExceptionalDatesRight.csv") 
 ExceptionalDayandEffects <- ExceptionalDayandEffectFormat(ExceptionalDatesCSV, Format.FirstDate, FinishDate)
 
 
