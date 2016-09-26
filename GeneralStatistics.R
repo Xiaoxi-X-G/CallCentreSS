@@ -21,7 +21,7 @@ require(MASS)
 odbcDataSources()
 
 conn<-odbcConnect("localdb") #
-DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'Public_Incident';", as.is = T)
+DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'XD_Emergency';", as.is = T)
 odbcClose(conn)
 
 ######### Clean data
@@ -95,7 +95,7 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 
 
 #### Segment for training and testing ####
-Training.End <- "2012-06-21"
+Training.End <- "2012-08-21"
   
 Days.training <- 6*7-1
 Days.testing <- 2*7 -3
@@ -104,7 +104,6 @@ Data.training <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(T
 
 Data.testing <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End) + 1 ))
                                     & (as.Date(DataAllClean$DateTime)<= (as.Date(Training.End) + Days.testing))),]
-
 
 plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
      type ="o", col= "blue", 
@@ -160,11 +159,16 @@ colnames(Data.training.daily)[2] <- "Value"
 
 #####################################################################
 ###### Intraday forecast  ########
-if (mean(Data.training.daily$Value, na.rm = T) < 100){
+if (mean(Data.training[,2], na.rm = T) < 25){
   Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
   Results <- NormalIntradayPrediction_LargeCalls(Data.training, Days.testing, Interval)
 }
+
+plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
+     type ="o", col= "blue",  ylim=c(0, max(Data.training$Items)), cex.axis=1.5)
+lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items), type = "o", pch = 22, lty = 2, col = "red")
+lines(c(rep(0, length= nrow(Data.training)), Results), type = "o", pch = 22,  col = "green")
 
 
 ##############################################
