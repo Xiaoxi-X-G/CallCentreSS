@@ -168,10 +168,17 @@ if (mean(Data.training.daily$Value, na.rm = T) < 100){
 ##############################################
 ####### Replace by Abnormal Results if required ##########
 if(length(AbnormalResults)>0){
-  FinialResults <- UpdateResults(Results, AbnormalResults, ExceptionalDayandEffects, StartDate, FinishDate, Interval)
+  Results.finial <- UpdateResults(Results, AbnormalResults, ExceptionalDayandEffects, StartDate, FinishDate, Interval)
 }else{
-  FinialResults <- Results
+  Results.finial <- Results
 }
+
+Results.finial.format <- 
+  data.frame(DateTime = seq(as.POSIXct(paste(StartDate, "00:00:00"), origin="1970-01-01", tz="GMT"),
+                            by = paste(Interval, "mins"),
+                            length.out = length(Results.finial)),
+             Value = Results.finial,
+             stringsAsFactors = F)
 
 
 
