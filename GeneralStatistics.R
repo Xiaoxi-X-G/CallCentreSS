@@ -8,6 +8,8 @@ source(paste(RScriptPath, "/NormalIntradayPrediction_LargeCalls.R", sep=""))
 source(paste(RScriptPath, "/ExceptionalDayandEffectFormat.R", sep="")) 
 source(paste(RScriptPath, "/ExponentialCoeff.R", sep="")) 
 source(paste(RScriptPath, "/UpdateResults.R", sep="")) 
+source(paste(RScriptPath, "/AbnormalPred.R", sep="")) 
+
 
 
 
@@ -28,7 +30,7 @@ DataAll<-DataAll[order(DataAll[,1]),]
 
 Format.FirstDate <- as.character(as.Date(DataAll$CellTime[1]))
 Format.LastDate <- as.character(as.Date(tail(DataAll$CellTime, n=1)))
-Interval <- "30"
+Interval <- "60"
 
 DataAllClean <- FormatTS(DataAll, Format.FirstDate, Format.LastDate, Interval)
 DataAllClean$Items <- as.numeric(DataAllClean$Items) 
@@ -185,16 +187,16 @@ Results.finial.format <-
 
 
 
-
+####### Plot #######
 
 plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
      type ="o", col= "blue",  ylim=c(0, max(Data.training$Items)), cex.axis=1.5)
 lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items), type = "o", pch = 22, lty = 2, col = "red")
-lines(c(rep(0, length= nrow(Data.training)), Results), type = "o", pch = 22,  col = "green")
+lines(c(rep(0, length= nrow(Data.training)), Results.finial.format[,2]), type = "o", pch = 22,  col = "green")
 
 
 plot(Data.testing$Items, type = "o", col = "red")
-lines(as.numeric(Results), type = "o", pch = 22,  col = "green")
+lines(as.numeric(Results.finial.format[,2]), type = "o", pch = 22,  col = "green")
 
 
 #################################################################  
