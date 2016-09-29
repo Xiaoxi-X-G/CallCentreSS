@@ -197,11 +197,29 @@ source(paste(RScriptPath, "/TranslateDayofWeek.R", sep=""))
 DatabaseName<-"Time2Work_EZCorp"
 LocationID <- 9
 ## Note: use Ezcorp database, assuming exist the same format
+require(chron)
 
-OpenDayTime <- OpenCloseDayTime(FirstDate, FinishDate, LocationID,RScriptPath, DatabaseName)
+OpenDayTime <- OpenCloseDayTime(StartDate, FinishDate, LocationID,RScriptPath, DatabaseName)
+
+Results.finial.matrix <- t(matrix(Results.finial, nrow = 24*60/as.integer(Interval)))
+
+colnames(Results.finial.matrix) <- format(seq(as.POSIXct(paste(StartDate, "00:00:00"), origin="1970-01-01", tz="GMT"),
+                                              by = paste(Interval, "mins"),
+                                              length.out = 60*24/as.integer(Interval)), "%H:%M:%S")
 
 
+rownames(Results.finial.matrix) <- as.character(seq(as.Date(StartDate), as.Date(FinishDate), by = "1 day"))
 
+Results.scaled.matrix <- matrix(rep(0, length=length(Results.finial)), 
+                                ncol = 24*60/as.integer(Interval))
+
+for (d in 1:length(OpenDayTime$Dates)){
+  Ind <- which( chron(times = colnames(Results.finial.matrix)) >= chron(times = OpenDayTime[d,2]) )
+  Results.scaled.matrix[d, Ind] <- (sum(Results.finial.matrix[d,]) / sum(Results.finial.matrix[d, Ind]))*Results.finial.matrix[d, Ind]
+}
+
+
+Results.scaled.finial <- as.vector(t(Results.scaled.matrix))
 
 
 
@@ -209,8 +227,8 @@ OpenDayTime <- OpenCloseDayTime(FirstDate, FinishDate, LocationID,RScriptPath, D
 Results.finial.format <- 
   data.frame(DateTime = seq(as.POSIXct(paste(StartDate, "00:00:00"), origin="1970-01-01", tz="GMT"),
                             by = paste(Interval, "mins"),
-                            length.out = length(Results.finial)),
-             Value = Results.finial,
+                            length.out = length(Results.scaled.finial)),
+             Value = Results.scaled.finial,
              stringsAsFactors = F)
 
 
