@@ -21,7 +21,7 @@ require(MASS)
 odbcDataSources()
 
 conn<-odbcConnect("localdb") #
-DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'XD_Emergency';", as.is = T)
+DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'Public_Incident';", as.is = T)
 odbcClose(conn)
 
 ######### Clean data
@@ -97,7 +97,7 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 #### Segment for training and testing ####
 Training.End <- "2012-08-21"
   
-Days.training <- 6*7-1
+Days.training <- 8*7-1
 Days.testing <- 2*7 -3
 Data.training <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End)- Days.training+1 ))
                             & (as.Date(DataAllClean$DateTime)<= as.Date(Training.End))),]
@@ -157,6 +157,14 @@ Data.training.daily <- aggregate(as.integer(Data.training.daily.temp$Items),
 colnames(Data.training.daily)[2] <- "Value"
 
 
+Data.training.daily$Wk <- weekdays(as.Date(Data.training.daily$Date))
+## Check zeros
+
+###########
+#### Training data preprocessing ####
+boxplot(Data.training$Items)
+
+
 #####################################################################
 ###### Intraday forecast  ########
 if (mean(Data.training[,2], na.rm = T) < 25){
@@ -178,6 +186,25 @@ if(length(AbnormalResults)>0){
 }else{
   Results.finial <- Results
 }
+
+
+
+
+#########################################
+##### Trim and Scale result based on OpeningHours
+source(paste(RScriptPath, "/OpenCloseDayTime.R", sep=""))
+source(paste(RScriptPath, "/TranslateDayofWeek.R", sep=""))
+DatabaseName<-"Time2Work_EZCorp"
+LocationID <- 9
+## Note: use Ezcorp database, assuming exist the same format
+
+OpenDayTime <- OpenCloseDayTime(FirstDate, FinishDate, LocationID,RScriptPath, DatabaseName)
+
+
+
+
+
+
 
 Results.finial.format <- 
   data.frame(DateTime = seq(as.POSIXct(paste(StartDate, "00:00:00"), origin="1970-01-01", tz="GMT"),
