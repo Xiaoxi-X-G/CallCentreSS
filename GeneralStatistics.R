@@ -196,7 +196,7 @@ source(paste(RScriptPath, "/OpenCloseDayTime.R", sep=""))
 source(paste(RScriptPath, "/TranslateDayofWeek.R", sep=""))
 DatabaseName<-"Time2Work_EZCorp"
 LocationID <- 9
-## Note: use Ezcorp database, assuming exist the same format
+## Note: use Ezcorp database, assuming exist the same format 
 
 OpenDayTime <- OpenCloseDayTime(FirstDate, FinishDate, LocationID,RScriptPath, DatabaseName)
 
