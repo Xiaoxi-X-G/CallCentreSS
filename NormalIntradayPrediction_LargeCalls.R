@@ -16,8 +16,8 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
   Input.data.hourly <- data.frame(table(cut(as.POSIXct(Data.training[,1], origin="1970-01-01", tz="GMT"),
                                             breaks="hour")))
   colnames(Input.data.hourly) <- c("DateTime","Items")
-  Lambda <- BoxCox.lambda(Input.data$Items)
-  Input.data$BoxCox <- BoxCox(Input.data$Items, Lambda)
+  Lambda <- BoxCox.lambda(Input.data.hourly$Items)
+  Input.data.hourly$BoxCox <- BoxCox(Input.data.hourly$Items, Lambda)
   
   
   ### 2. Intraday prediction
@@ -25,7 +25,7 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
     {
       Seasonal1 <- 24 #Distributed smaller interval later, 60*24/as.integer(Interval)
       Seasonal2 <- 7*Seasonal1
-      Data.msts <- msts(Input.data$BoxCox, seasonal.periods = c(Seasonal1, Seasonal2))
+      Data.msts <- msts(Input.data.hourly$BoxCox, seasonal.periods = c(Seasonal1, Seasonal2))
       Fit <- tbats(Data.msts, use.box.cox = F, 
                    seasonal.periods = c(Seasonal1, Seasonal2),
                    use.trend = T,  use.damped.trend= T,
@@ -37,7 +37,7 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
     #   return(Fit)
     # },
     error = function(cond){
-      Data.ts <- ts(Input.data$BoxCox, frequency = 7*24*60/as.integer(Interval))
+      Data.ts <- ts(Input.data.hourly$BoxCox, frequency = 7*24*60/as.integer(Interval))
       Fit <- ets(Data.ts)
       return(Fit)
     }
