@@ -12,7 +12,10 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
   
   
   ### 1. BoxCox transformation
-  Input.data <- Data.training
+  lg <- Days.testing
+  Input.data.hourly <- data.frame(table(cut(as.POSIXct(Data.training[,1], origin="1970-01-01", tz="GMT"),
+                                            breaks="hour")))
+  colnames(Input.data.hourly) <- c("DateTime","Items")
   Lambda <- BoxCox.lambda(Input.data$Items)
   Input.data$BoxCox <- BoxCox(Input.data$Items, Lambda)
   
@@ -50,14 +53,14 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
   
   
   ### 4. Distributed to each intraday interval ####
-  Days.training <- nrow(Input.data)/(24*60/as.integer(Interval))
+  Days.training <- nrow(Data.training)/(24*60/as.integer(Interval))
   
   cols <- 60/as.integer(Interval)
   Data.matrix.intra3d <- array(0, 
                                dim = c(60/as.integer(Interval)*24/cols, cols, Days.training),
                                dimnames = list(seq(0, 23, by = 1)))
-  Data.matrix.intra <- t(matrix(as.numeric(Input.data$Items), nrow  = 24*60/as.integer(Interval)))
-
+  Data.matrix.intra <- t(matrix(as.numeric(Data.training$Items), nrow  = 24*60/as.integer(Interval)))
+  
   Coeff.temp3d <- array(0, 
                         dim = c(60/as.integer(Interval)*24/cols, cols, Days.training),
                         dimnames = list(seq(0, 23, by = 1)))
