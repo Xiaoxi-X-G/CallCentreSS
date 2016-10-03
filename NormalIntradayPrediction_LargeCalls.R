@@ -13,8 +13,12 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
   
   ### 1. BoxCox transformation
   lg <- Days.testing
-  Input.data.hourly <- data.frame(table(cut(as.POSIXct(Data.training[,1], origin="1970-01-01", tz="GMT"),
-                                            breaks="hour")))
+  Input.data.hourly <- aggregate(Data.training[,2], list(DateTime = cut(as.POSIXct(Data.training[,1], 
+                                                                                   origin="1970-01-01", 
+                                                                                   tz="GMT"),
+                                                                        breaks="hour")), 
+                                 FUN=sum)
+  
   colnames(Input.data.hourly) <- c("DateTime","Items")
   Lambda <- BoxCox.lambda(Input.data.hourly$Items)
   Input.data.hourly$BoxCox <- BoxCox(Input.data.hourly$Items, Lambda)
