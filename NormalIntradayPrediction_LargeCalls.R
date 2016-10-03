@@ -20,7 +20,7 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
   ### 2. Intraday prediction
   Fit <- tryCatch(
     {
-      Seasonal1 <- 60*24/as.integer(Interval)
+      Seasonal1 <- 24 #Distributed smaller interval later, 60*24/as.integer(Interval)
       Seasonal2 <- 7*Seasonal1
       Data.msts <- msts(Input.data$BoxCox, seasonal.periods = c(Seasonal1, Seasonal2))
       Fit <- tbats(Data.msts, use.box.cox = F, 
@@ -28,11 +28,11 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
                    use.trend = T,  use.damped.trend= T,
                    use.arma.errors = T)
     },
-    warning = function(cond){
-      Data.ts <- ts(Input.data$BoxCox, frequency = 7*24*60/as.integer(Interval))
-      Fit <- ets(Data.ts)
-      return(Fit)
-    },
+    # warning = function(cond){
+    #   Data.ts <- ts(Input.data$BoxCox, frequency = 7*24*60/as.integer(Interval))
+    #   Fit <- ets(Data.ts)
+    #   return(Fit)
+    # },
     error = function(cond){
       Data.ts <- ts(Input.data$BoxCox, frequency = 7*24*60/as.integer(Interval))
       Fit <- ets(Data.ts)
@@ -40,7 +40,7 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
     }
   )
   
-  Results.temp <- forecast(Fit, h =lg*24*60/as.integer(Interval))
+  Results.temp <- forecast(Fit, h =lg*24)
   
   ### 3. Inverse BoxCox
   Results <- InvBoxCox(as.numeric(Results.temp$mean), Lambda)

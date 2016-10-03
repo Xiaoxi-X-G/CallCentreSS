@@ -96,9 +96,9 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 
 
 #### Segment for training and testing ####
-Training.End <- "2012-08-21"
+Training.End <- "2012-10-21"
   
-Days.training <- 8*7-1
+Days.training <- 10*7
 Days.testing <- 2*7 -3
 Data.training <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End)- Days.training+1 ))
                             & (as.Date(DataAllClean$DateTime)<= as.Date(Training.End))),]
@@ -166,9 +166,19 @@ Data.training.daily$Wk <- weekdays(as.Date(Data.training.daily$Date))
 boxplot(Data.training$Items)
 
 
+######## Check var and exp
+Data.training$Wk <- weekdays(as.Date(Data.training$Date))
+Data.training.matrix <- t(matrix(Data.training$Items[which(Data.training$Wk == "Friday")], 
+                                 nrow = 24*60/as.integer(Interval)))
+sqrt(apply(Data.training.matrix, MARGIN = 2, var)) 
+apply(Data.training.matrix, MARGIN = 2, mean)
+
+sqrt(apply(Data.training.matrix, MARGIN = 2, var)) / apply(Data.training.matrix, MARGIN = 2, mean)
+
+
 #####################################################################
 ###### Intraday forecast  ########
-if (mean(Data.training[,2], na.rm = T) < 25){
+if (mean(Data.training[,2], na.rm = T) < 25){ #need to be normalized
   Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
   Results <- NormalIntradayPrediction_LargeCalls(Data.training, Days.testing, Interval)
@@ -178,6 +188,9 @@ plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
      type ="o", col= "blue",  ylim=c(0, max(Data.training$Items)), cex.axis=1.5)
 lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items), type = "o", pch = 22, lty = 2, col = "red")
 lines(c(rep(0, length= nrow(Data.training)), Results), type = "o", pch = 22,  col = "green")
+
+plot(Data.testing$Items, type = "o", col = "red")
+lines(as.numeric(Results), type = "o", pch = 22,  col = "green")
 
 
 ##############################################
@@ -202,6 +215,8 @@ require(chron)
 OpenDayTime <- OpenCloseDayTime(StartDate, FinishDate, LocationID,RScriptPath, DatabaseName)
 
 Results.scaled.finial <- ResultScaled(Results.finial, OpenDayTime, StartDate, FinishDate, Interval)
+
+
 
 
 ###### Format output
@@ -241,7 +256,8 @@ hist(Residual)
 acf(Residual)
 qqnorm(Residual)
 
-mean(1-abs(Data.testing$Pred - Data.testing$Items)/max(Data.testing$Items, rm.na=T), rm.na=T)
+mean(1-abs(Data.testing$Pred - Data.testing$Items)/max(Data.testing$Pred, rm.na=T), rm.na=T)
+
 
 
 ### Daily error
@@ -252,6 +268,6 @@ DailyResult <- aggregate(Data.testing[,c(2,3)],
 colnames(DailyResult)[1] <- "Date"
 
 DailyResult$Residual <- DailyResult$Items - DailyResult$Pred
-mean(1 - abs(DailyResult$Residual)/ max(DailyResult$Items))
+mean(1 - abs(DailyResult$Residual)/ (DailyResult$Items))
 acf(DailyResult$Residual)
 
