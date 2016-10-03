@@ -43,8 +43,55 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
   Results.temp <- forecast(Fit, h =lg*24)
   
   ### 3. Inverse BoxCox
-  Results <- InvBoxCox(as.numeric(Results.temp$mean), Lambda)
-  Results[which(Results < 0)] <- 0 
+  Results.hourly <- InvBoxCox(as.numeric(Results.temp$mean), Lambda)
+  Results.hourly[which(Results.hourly < 0)] <- 0 
   
-  return(Results)
+  
+  
+  
+  ### 4. Distributed to each intraday interval ####
+  Days.training <- nrow(Input.data)/(24*60/as.integer(Interval))
+  
+  cols <- 60/as.integer(Interval)
+  Data.matrix.intra3d <- array(0, 
+                               dim = c(60/as.integer(Interval)*24/cols, cols, Days.training),
+                               dimnames = list(seq(0, 23, by = 1)))
+  Data.matrix.intra <- t(matrix(as.numeric(Input.data$Items), nrow  = 24*60/as.integer(Interval)))
+
+  Coeff.temp3d <- array(0, 
+                        dim = c(60/as.integer(Interval)*24/cols, cols, Days.training),
+                        dimnames = list(seq(0, 23, by = 1)))
+  
+  for (m in 1:Days.training){
+    Data.matrix.intra3d[,,m] <- t(matrix(Data.matrix.intra[m,], nrow = cols))
+    Coeff.temp3d[,,m] <- Data.matrix.intra3d[,,m]/rowSums(Data.matrix.intra3d[,,m])
+  }
+  Coeff.temp3d[is.nan(Coeff.temp3d)] <- 0 
+  
+  
+  Matrix.inter.coeff3d <- array(0, 
+                                dim = c(60/as.integer(Interval)*24/cols, cols, 7),
+                                dimnames = list(seq(0, 23, by = 1)))
+  # Matrix.inter.coeff3d[,,1]<- next weekdays
+  # .
+  # .
+  # .
+  # Matrix.inter.coeff3d[,,1]<- Today's date
+  
+  for (i in 1:7){ # the intra day coeff of each weekday, Assuming continuous of the data
+    Matrix.inter.coeff3d[,,(8-i)] <- apply(Coeff.temp3d[,,seq(dim(Matrix.inter.coeff3d)[3]-i+1, 1, by = -7) ],
+                                           MARGIN = c(1,2),
+                                           FUN = mean)
+  }
+  
+  Matrix.inter.coeff3d.all <- Matrix.inter.coeff3d[,,rep(c(1:7), length = lg)]
+  Results.output <- matrix(0, nrow = lg, ncol = 24*60/as.integer(Interval))
+  
+  for (p in 1:lg){
+    Results.output[p,] <- as.vector(t(Matrix.inter.coeff3d.all[,,p] * 
+                                        Results.hourly[((p-1)*24+1):(p*24)]))
+  }
+  
+  
+  return(Results.output)
 }
