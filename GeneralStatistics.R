@@ -31,7 +31,7 @@ DataAll<-DataAll[order(DataAll[,1]),]
 
 Format.FirstDate <- as.character(as.Date(DataAll$CellTime[1]))
 Format.LastDate <- as.character(as.Date(tail(DataAll$CellTime, n=1)))
-Interval <- "60"
+Interval <- "30"
 
 DataAllClean <- FormatTS(DataAll, Format.FirstDate, Format.LastDate, Interval)
 DataAllClean$Items <- as.numeric(DataAllClean$Items) 
@@ -183,6 +183,48 @@ if (mean(Data.training[,2], na.rm = T) < 25){ #need to be normalized
 }else{
   Results <- NormalIntradayPrediction_LargeCalls(Data.training, Days.testing, Interval)
 }
+
+
+### 4. Distributed to each intraday interval ####
+cols <- 60/as.integer(Interval)
+Data.matrix.intra3d <- array(0, 
+                             dim = c(60/as.integer(Interval)*24/cols, cols, Days.training),
+                             dimnames = list(seq(0, 23, by = 1)))
+Data.matrix.intra <- t(matrix(as.numeric(Data.training$Items), nrow  = 24*60/as.integer(Interval)))
+
+# colnames(Data.matrix.intra3d[1,,]) <- seq(from =0, by=as.integer(Interval)/60,
+#                                    length = 60/as.integer(Interval)*24)
+
+Coeff.temp3d <- array(0, 
+                      dim = c(60/as.integer(Interval)*24/cols, cols, Days.training),
+                      dimnames = list(seq(0, 23, by = 1)))
+
+for (m in 1:Days.training){
+  Data.matrix.intra3d[,,m] <- t(matrix(Data.matrix.intra[m,], nrow = cols))
+  Coeff.temp3d[,,m] <- Data.matrix.intra3d[,,m]/rowSums(Data.matrix.intra3d[,,m])
+}
+Coeff.temp3d[is.nan(Coeff.temp3d)] <- 0 
+
+
+Matrix.inter.coeff3d <- array(0, 
+                      dim = c(60/as.integer(Interval)*24/cols, cols, 7),
+                      dimnames = list(seq(0, 23, by = 1)))
+# Matrix.inter.coeff3d[,,1]<- next weekdays
+# .
+# .
+# .
+# Matrix.inter.coeff3d[,,1]<- Today's date
+
+for (i in 1:7){ # the intra day coeff of each weekday, Assuming continuous of the data
+  Matrix.inter.coeff3d[,,(8-i)] <- apply(Coeff.temp3d[,,seq(dim(Matrix.inter.coeff3d)[3]-i+1, 1, by = -7) ],
+                                      MARGIN = c(1,2),
+                                      FUN = mean)
+}
+
+Matrix.inter.coeff3d[,,rep(c(1:7), length = Days.testing)]
+
+
+
 
 plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
      type ="o", col= "blue",  ylim=c(0, max(Data.training$Items)), cex.axis=1.5)
