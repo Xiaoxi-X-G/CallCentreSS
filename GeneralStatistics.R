@@ -200,8 +200,8 @@ ImputeData.temp <- amelia(Rearranged.df, m=1, ts="Wk", cs = "TimeDayofWeek",
 Ind <- order(as.POSIXct(TimeLine, origin="1970-01-01", tz="GMT"))
 ImputeData <- data.frame(DateTime=TimeLine[Ind], Items = ImputeData.temp$imputations[[1]]$Items[Ind]) 
 
-plot(Data.training$Items[100:800],  type ="o", col= "blue")
-lines(ImputeData$Items[100:800], type = "o", pch = 22, lty = 2, col = "red")
+plot(Data.training$Items[800:1600],  type ="o", col= "blue")
+lines(ImputeData$Items[800:1600], type = "o", pch = 22, lty = 2, col = "red")
 
 
 
