@@ -291,7 +291,7 @@ lines(as.numeric(Results.finial.format[,2]), type = "o", pch = 22,  col = "green
 
 #################################################################  
 ######## Residual check - per hours ######
-RMSE <- sqrt(mean((Data.testing$Items-Results)^2, na.rm =T))
+RMSE <- sqrt(mean((Data.testing$Items-Results)^2, na.rm =T)) 
 Data.testing$Pred <- Results
 
 Residual <- as.numeric(Data.testing$Pred - Data.testing$Items)
