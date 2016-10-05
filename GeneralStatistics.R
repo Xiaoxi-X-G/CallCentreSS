@@ -176,7 +176,7 @@ Outliers <- function(x){
 #### Training data preprocessing ####
 #Data.training$Items[sample(1:nrow(Data.training),100, replace = T)] <- 0 # random 0
 
-Data.training$Items[500:600] <- 0 # burst 0
+Data.training$Items[500:600] <- NA # burst NA
 Period <-  7*24*60/as.integer(Interval) # assume repeat every Period points
 Rearranged.df <- data.frame(Wk=c(), TimeDayOfWeek=c(), Items=c())
 
@@ -200,8 +200,8 @@ ImputeData.temp <- amelia(Rearranged.df, m=1, ts="Wk", cs = "TimeDayofWeek",
 Ind <- order(as.POSIXct(TimeLine, origin="1970-01-01", tz="GMT"))
 ImputeData <- data.frame(DateTime=TimeLine[Ind], Items = ImputeData.temp$imputations[[1]]$Items[Ind]) 
 
-plot(Data.training$Items[800:1200],  type ="o", col= "blue")
-lines(ImputeData$Items[800:1200], type = "o", pch = 22, lty = 2, col = "red")
+plot(Data.training$Items[100:800],  type ="o", col= "blue")
+lines(ImputeData$Items[100:800], type = "o", pch = 22, lty = 2, col = "red")
 
 
 
