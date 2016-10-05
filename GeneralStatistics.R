@@ -9,6 +9,7 @@ source(paste(RScriptPath, "/ExceptionalDayandEffectFormat.R", sep=""))
 source(paste(RScriptPath, "/ExponentialCoeff.R", sep="")) 
 source(paste(RScriptPath, "/UpdateResults.R", sep="")) 
 source(paste(RScriptPath, "/AbnormalPred.R", sep="")) 
+source(paste(RScriptPath, "/ResultScaled.R", sep=""))
 
 
 
@@ -21,10 +22,11 @@ require(MASS)
 odbcDataSources()
 
 conn<-odbcConnect("localdb") #
-DataAll <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'Public_Incident';", as.is = T)
+DataAll.temp <- sqlQuery(conn, "SELECT [CellTime], [Tot_num_incoming], [Tot_time_incoming] FROM [CallCenter].[dbo].[CallCenter_DataRaw] where QueueID = 'Public_Incident';", as.is = T)
 odbcClose(conn)
 
 ######### Clean data
+DataAll <- DataAll.temp[,c(1,2)]
 DataAll[,1] <- as.POSIXct(DataAll[,1], origin = "1970-01-01", tz="GMT")
 DataAll<-DataAll[order(DataAll[,1]),]
 
@@ -97,8 +99,8 @@ DataAllClean$Items <- as.numeric(DataAllClean$Items)
 #### Segment for training and testing ####
 Training.End <- "2012-08-21"
   
-Days.training <- 8*7-1
-Days.testing <- 2*7 -3
+Days.training <- 12*7
+Days.testing <- 7*2-1
 Data.training <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End)- Days.training+1 ))
                             & (as.Date(DataAllClean$DateTime)<= as.Date(Training.End))),]
 
@@ -140,7 +142,6 @@ if (length(which((ExceptionalDayandEffects[[2]]$Dates>=as.Date(StartDate))
                                         Interval, Format.FirstDate, LastDate, StartDate, FinishDate)
   AbnormalResults.temp2 <- AbnormalPred(DataAllClean, AbnormalInfo=ExceptionalDayandEffects[[2]], 
                                         Interval, Format.FirstDate, LastDate, StartDate, FinishDate)
-  
   AbnormalResults <- cbind(AbnormalResults.temp1, AbnormalResults.temp2)
 }
 
@@ -161,22 +162,81 @@ Data.training.daily$Wk <- weekdays(as.Date(Data.training.daily$Date))
 ## Check zeros
 
 ###########
+require(Amelia)
+
+Outliers <- function(x){
+  qnt <- quantile(x, probs = c(0.25, 0.75), na.rm = T)
+  H <- 1.5*IQR(x, na.rm = T)
+  y <- x
+  y[x < (qnt[1]-H)] <- NA
+  y[x > (qnt[2]+H)] <- NA
+  return(y)
+}
+
 #### Training data preprocessing ####
-boxplot(Data.training$Items)
+#Data.training$Items[sample(1:nrow(Data.training),100, replace = T)] <- 0 # random 0
+
+Data.training$Items[500:600] <- NA # burst NA
+Period <-  7*24*60/as.integer(Interval) # assume repeat every Period points
+Rearranged.df <- data.frame(Wk=c(), TimeDayOfWeek=c(), Items=c())
+
+TimeLine <- c()
+for (n in 1:Period){ 
+  ToCheck <- Data.training[seq(n, nrow(Data.training), by =Period ), ]
+  ToCheck$DayOfWk <- weekdays(as.POSIXct(ToCheck$DateTime, origin="1970-01-01", tz="GMT"))
+  temp.dataframe <- data.frame(Wk=seq(1, nrow(ToCheck), by =1),
+                               TimeDayofWeek = paste(format(as.POSIXct(ToCheck$DateTime, origin="1970-01-01", tz="GMT"), "%H:%M:%S"), ToCheck$DayOfWk, sep = ","),
+                               Items = Outliers(ToCheck$Items))
+  Rearranged.df <- rbind(Rearranged.df, temp.dataframe)
+  TimeLine <- c(TimeLine, ToCheck$DateTime)
+}
+
+ImputeData.temp <- amelia(Rearranged.df, m=1, ts="Wk", cs = "TimeDayofWeek", 
+                           polytime = 2, intercs = T,
+                          bounds = matrix(c(3, 0, max(Data.training$Items)), nrow=1, ncol = 3))
+
+#tscsPlot(ImputeData.temp, cs = "13:00:00,Wednesday", var = "Items")
+
+Ind <- order(as.POSIXct(TimeLine, origin="1970-01-01", tz="GMT"))
+ImputeData <- data.frame(DateTime=TimeLine[Ind], Items = ImputeData.temp$imputations[[1]]$Items[Ind]) 
+
+plot(Data.training$Items[100:800],  type ="o", col= "blue")
+lines(ImputeData$Items[100:800], type = "o", pch = 22, lty = 2, col = "red")
+
+
+
+
+
+      
+      
+
+######## Check var and exp ####
+Data.training$Wk <- weekdays(as.Date(Data.training$Date))
+Data.training.matrix <- t(matrix(Data.training$Items[which(Data.training$Wk == "Friday")], 
+                                 nrow = 24*60/as.integer(Interval)))
+sqrt(apply(Data.training.matrix, MARGIN = 2, var)) 
+apply(Data.training.matrix, MARGIN = 2, mean)
+
+sqrt(apply(Data.training.matrix, MARGIN = 2, var)) / apply(Data.training.matrix, MARGIN = 2, mean)
 
 
 #####################################################################
 ###### Intraday forecast  ########
-if (mean(Data.training[,2], na.rm = T) < 25){
+if (mean(Data.training[,2], na.rm = T) < 25){ #need to be normalized
   Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
-  Results <- NormalIntradayPrediction_LargeCalls(Data.training, Days.testing, Interval)
+  Results <- as.vector(t(NormalIntradayPrediction_LargeCalls(Data.training, Days.testing, Interval)))
 }
+
+
 
 plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
      type ="o", col= "blue",  ylim=c(0, max(Data.training$Items)), cex.axis=1.5)
 lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items), type = "o", pch = 22, lty = 2, col = "red")
 lines(c(rep(0, length= nrow(Data.training)), Results), type = "o", pch = 22,  col = "green")
+
+plot(Data.testing$Items, type = "o", col = "red")
+lines(as.numeric(Results), type = "o", pch = 22,  col = "green")
 
 
 ##############################################
@@ -191,28 +251,31 @@ if(length(AbnormalResults)>0){
 
 
 #########################################
-##### Trim and Scale result based on OpeningHours
+##### Trim and Scale result based on OpeningHours ####
 source(paste(RScriptPath, "/OpenCloseDayTime.R", sep=""))
 source(paste(RScriptPath, "/TranslateDayofWeek.R", sep=""))
 DatabaseName<-"Time2Work_EZCorp"
 LocationID <- 9
+<<<<<<< HEAD
 ## Note: use Ezcorp database, assuming exist the same format 
+=======
+## Note: use Ezcorp database, assuming exist the same format
+require(chron)
+OpenDayTime <- OpenCloseDayTime(StartDate, FinishDate, LocationID,RScriptPath, DatabaseName)
+>>>>>>> OpeningHour
 
-OpenDayTime <- OpenCloseDayTime(FirstDate, FinishDate, LocationID,RScriptPath, DatabaseName)
+Results.scaled.finial <- ResultScaled(Results.finial, OpenDayTime, StartDate, FinishDate, Interval)
 
 
 
 
-
-
-
+###### Format output #####
 Results.finial.format <- 
   data.frame(DateTime = seq(as.POSIXct(paste(StartDate, "00:00:00"), origin="1970-01-01", tz="GMT"),
                             by = paste(Interval, "mins"),
-                            length.out = length(Results.finial)),
-             Value = Results.finial,
+                            length.out = length(Results.scaled.finial)),
+             Value = Results.scaled.finial,
              stringsAsFactors = F)
-
 
 
 
@@ -236,14 +299,16 @@ RMSE <- sqrt(mean((Data.testing$Items-Results)^2, na.rm =T))
 Data.testing$Pred <- Results
 
 Residual <- as.numeric(Data.testing$Pred - Data.testing$Items)
+Data.testing$Residual <- Residual
 plot(Residual)
 mean(Residual)
 hist(Residual)
 acf(Residual)
 qqnorm(Residual)
 
-mean(1-abs(Data.testing$Pred - Data.testing$Items)/max(Data.testing$Items, rm.na=T), rm.na=T)
-
+# mean(1-abs(Data.testing$Pred - Data.testing$Items)/(Data.testing$Pred), rm.na=T)
+temp11 <- 1 - abs(Data.testing$Pred - Data.testing$Items)/(Data.testing$Pred)
+mean(temp11[is.finite(temp11)])
 
 ### Daily error
 DailyResult <- aggregate(Data.testing[,c(2,3)],  
@@ -253,6 +318,10 @@ DailyResult <- aggregate(Data.testing[,c(2,3)],
 colnames(DailyResult)[1] <- "Date"
 
 DailyResult$Residual <- DailyResult$Items - DailyResult$Pred
-mean(1 - abs(DailyResult$Residual)/ max(DailyResult$Items))
+
+RMSE.daily <- sqrt(mean((DailyResult$Items - DailyResult$Pred)^2, na.rm = T))
+
+mean(1 - abs(DailyResult$Residual)/ (DailyResult$Items))
 acf(DailyResult$Residual)
+
 
