@@ -256,14 +256,10 @@ source(paste(RScriptPath, "/OpenCloseDayTime.R", sep=""))
 source(paste(RScriptPath, "/TranslateDayofWeek.R", sep=""))
 DatabaseName<-"Time2Work_EZCorp"
 LocationID <- 9
-<<<<<<< HEAD
+
 ## Note: use Ezcorp database, assuming exist the same format 
-=======
-## Note: use Ezcorp database, assuming exist the same format
 require(chron)
 OpenDayTime <- OpenCloseDayTime(StartDate, FinishDate, LocationID,RScriptPath, DatabaseName)
->>>>>>> OpeningHour
-
 Results.scaled.finial <- ResultScaled(Results.finial, OpenDayTime, StartDate, FinishDate, Interval)
 
 
