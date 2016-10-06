@@ -174,35 +174,16 @@ LocationID <- 9
 OpenDayTime <- OpenCloseDayTime(StartDate, FinishDate, LocationID, RScriptPath, DatabaseName)
 
 
+Data.training$Items[500:600] <- NA # testing burst NA
+Data.training$Items[sample(1:nrow(Data.training), 500)] <- NA
 
+Data.training.imputate <- Imputation(Data.training, Interval)
 
+Data.training$Items[is.na(Data.training$Items)] <-0
+plot(Data.training$Items[400:650],  type ="o", col= "blue")
+lines(Data.training.imputate$Items[400:650], type = "o", pch = 22, lty = 2, col = "red")
 
-Data.training$Items[500:600] <- NA # burst NA
-Period <-  7*24*60/as.integer(Interval) # assume repeat every Period points
-Rearranged.df <- data.frame(Wk=c(), TimeDayOfWeek=c(), Items=c())
-
-TimeLine <- c()
-for (n in 1:Period){ 
-  ToCheck <- Data.training[seq(n, nrow(Data.training), by =Period ), ]
-  ToCheck$DayOfWk <- weekdays(as.POSIXct(ToCheck$DateTime, origin="1970-01-01", tz="GMT"))
-  temp.dataframe <- data.frame(Wk=seq(1, nrow(ToCheck), by =1),
-                               TimeDayofWeek = paste(format(as.POSIXct(ToCheck$DateTime, origin="1970-01-01", tz="GMT"), "%H:%M:%S"), ToCheck$DayOfWk, sep = ","),
-                               Items = Outliers(ToCheck$Items))
-  Rearranged.df <- rbind(Rearranged.df, temp.dataframe)
-  TimeLine <- c(TimeLine, ToCheck$DateTime)
-}
-
-ImputeData.temp <- amelia(Rearranged.df, m=1, ts="Wk", cs = "TimeDayofWeek", 
-                           polytime = 2, intercs = T,
-                          bounds = matrix(c(3, 0, max(Data.training$Items)), nrow=1, ncol = 3))
-
-#tscsPlot(ImputeData.temp, cs = "13:00:00,Wednesday", var = "Items")
-
-Ind <- order(as.POSIXct(TimeLine, origin="1970-01-01", tz="GMT"))
-ImputeData <- data.frame(DateTime=TimeLine[Ind], Items = ImputeData.temp$imputations[[1]]$Items[Ind]) 
-
-plot(Data.training$Items[800:1600],  type ="o", col= "blue")
-lines(ImputeData$Items[800:1600], type = "o", pch = 22, lty = 2, col = "red")
+plot(Data.training.imputate$Items[400:650],  type ="o", col= "red")
 
 
 
