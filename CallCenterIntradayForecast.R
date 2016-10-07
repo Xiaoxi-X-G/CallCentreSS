@@ -52,7 +52,7 @@ colnames(DataAll) <- c("DateTime", "Items")
 ##############################################################################
 
 #### 1. Set the starting date for forecasting and forecasting period ####
-Training.End <- "2011-07-10"
+Training.End <- "2012-01-10"
 Days.training <- 12*7
 Days.testing <- 7*1-1
 ##############################################################################
