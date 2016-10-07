@@ -10,7 +10,8 @@ source(paste(RScriptPath, "/ExponentialCoeff.R", sep=""))
 source(paste(RScriptPath, "/UpdateResults.R", sep="")) 
 source(paste(RScriptPath, "/AbnormalPred.R", sep="")) 
 source(paste(RScriptPath, "/ResultScaled.R", sep=""))
-
+source(paste(RScriptPath, "/Outliers.R", sep=""))
+source(paste(RScriptPath, "/Imputation.R", sep=""))
 
 
 
@@ -164,44 +165,25 @@ Data.training.daily$Wk <- weekdays(as.Date(Data.training.daily$Date))
 ###########
 require(Amelia)
 
-Outliers <- function(x){
-  qnt <- quantile(x, probs = c(0.25, 0.75), na.rm = T)
-  H <- 1.5*IQR(x, na.rm = T)
-  y <- x
-  y[x < (qnt[1]-H)] <- NA
-  y[x > (qnt[2]+H)] <- NA
-  return(y)
-}
-
 #### Training data preprocessing ####
 #Data.training$Items[sample(1:nrow(Data.training),100, replace = T)] <- 0 # random 0
+source(paste(RScriptPath, "/OpenCloseDayTime.R", sep=""))
+source(paste(RScriptPath, "/TranslateDayofWeek.R", sep=""))
+DatabaseName<-"Time2Work_EZCorp"
+LocationID <- 9
+OpenDayTime <- OpenCloseDayTime(StartDate, FinishDate, LocationID, RScriptPath, DatabaseName)
 
-Data.training$Items[500:600] <- NA # burst NA
-Period <-  7*24*60/as.integer(Interval) # assume repeat every Period points
-Rearranged.df <- data.frame(Wk=c(), TimeDayOfWeek=c(), Items=c())
 
-TimeLine <- c()
-for (n in 1:Period){ 
-  ToCheck <- Data.training[seq(n, nrow(Data.training), by =Period ), ]
-  ToCheck$DayOfWk <- weekdays(as.POSIXct(ToCheck$DateTime, origin="1970-01-01", tz="GMT"))
-  temp.dataframe <- data.frame(Wk=seq(1, nrow(ToCheck), by =1),
-                               TimeDayofWeek = paste(format(as.POSIXct(ToCheck$DateTime, origin="1970-01-01", tz="GMT"), "%H:%M:%S"), ToCheck$DayOfWk, sep = ","),
-                               Items = Outliers(ToCheck$Items))
-  Rearranged.df <- rbind(Rearranged.df, temp.dataframe)
-  TimeLine <- c(TimeLine, ToCheck$DateTime)
-}
+Data.training$Items[500:600] <- NA # testing burst NA
+Data.training$Items[sample(1:nrow(Data.training), 500)] <- NA
 
-ImputeData.temp <- amelia(Rearranged.df, m=1, ts="Wk", cs = "TimeDayofWeek", 
-                           polytime = 2, intercs = T,
-                          bounds = matrix(c(3, 0, max(Data.training$Items)), nrow=1, ncol = 3))
+Data.training.imputate <- Imputation(Data.training, Interval)
 
-#tscsPlot(ImputeData.temp, cs = "13:00:00,Wednesday", var = "Items")
+Data.training$Items[is.na(Data.training$Items)] <-0
+plot(Data.training$Items[400:650],  type ="o", col= "blue")
+lines(Data.training.imputate$Items[400:650], type = "o", pch = 22, lty = 2, col = "red")
 
-Ind <- order(as.POSIXct(TimeLine, origin="1970-01-01", tz="GMT"))
-ImputeData <- data.frame(DateTime=TimeLine[Ind], Items = ImputeData.temp$imputations[[1]]$Items[Ind]) 
-
-plot(Data.training$Items[800:1600],  type ="o", col= "blue")
-lines(ImputeData$Items[800:1600], type = "o", pch = 22, lty = 2, col = "red")
+plot(Data.training.imputate$Items[400:650],  type ="o", col= "red")
 
 
 
@@ -252,14 +234,9 @@ if(length(AbnormalResults)>0){
 
 #########################################
 ##### Trim and Scale result based on OpeningHours ####
-source(paste(RScriptPath, "/OpenCloseDayTime.R", sep=""))
-source(paste(RScriptPath, "/TranslateDayofWeek.R", sep=""))
-DatabaseName<-"Time2Work_EZCorp"
-LocationID <- 9
 
 ## Note: use Ezcorp database, assuming exist the same format 
 require(chron)
-OpenDayTime <- OpenCloseDayTime(StartDate, FinishDate, LocationID,RScriptPath, DatabaseName)
 Results.scaled.finial <- ResultScaled(Results.finial, OpenDayTime, StartDate, FinishDate, Interval)
 
 
