@@ -41,7 +41,7 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
     #   return(Fit)
     # },
     error = function(cond){
-      Data.ts <- ts(Input.data.hourly$BoxCox, frequency = 7*24*60/as.integer(Interval))
+      Data.ts <- ts(Input.data.hourly$log, frequency = 7*24*60/as.integer(Interval))
       Fit <- ets(Data.ts)
       return(Fit)
     }
