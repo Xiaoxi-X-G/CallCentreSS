@@ -52,9 +52,9 @@ colnames(DataAll) <- c("DateTime", "Items")
 ##############################################################################
 
 #### 1. Set the starting date for forecasting and forecasting period ####
-Training.End <- "2012-08-21"
+Training.End <- "2011-07-10"
 Days.training <- 12*7
-Days.testing <- 7*2-1
+Days.testing <- 7*1-1
 ##############################################################################
 
 #### 2. Format the data with fixed Interval#####
@@ -103,7 +103,19 @@ OpenDayTime <- OpenCloseDayTime(StartDate, FinishDate, LocationID, RScriptPath, 
 ##############################################################################
 
 #### 5. Data preprocessing######
+# Data.training$Items[500:600] <- NA # testing burst NA
+# Data.training$Items[sample(1:nrow(Data.training), 100)] <- NA
+
 Data.training.imputated <- Imputation(Data.training, Interval)
+
+Data.training$Items[is.na(Data.training$Items)] <-0
+plot(Data.training$Items[900:2000],  type ="o", col= "blue")
+lines(Data.training.imputated$Items[900:2000], type = "o", pch = 22, lty = 2, col = "red")
+
+plot(Data.training.imputated$Items[400:1200],  type ="o", col= "red")
+
+
+
 ##############################################################################
 
 #### 6. Intraday prediction######
@@ -113,10 +125,10 @@ if (mean(Data.training.imputated[,2], na.rm = T) < 25){ #need to be normalized
   Results <- as.vector(t(NormalIntradayPrediction_LargeCalls(Data.training.imputated, Days.testing, Interval)))
 }
 
-plot(c(Data.training.imputated$Items, rep(0, length= nrow(Data.testing))),
-     type ="o", col= "blue",  ylim=c(0, max(Data.training.imputated$Items)), cex.axis=1.5)
-lines(c(rep(0, length= nrow(Data.training.imputated)), Data.testing$Items), type = "o", pch = 22, lty = 2, col = "red")
-lines(c(rep(0, length= nrow(Data.training.imputated)), Results), type = "o", pch = 22,  col = "green")
+plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
+     type ="o", col= "blue",  ylim=c(0, max(Data.training$Items)), cex.axis=1.5)
+lines(c(rep(0, length= nrow(Data.training)), Data.testing$Items), type = "o", pch = 22, lty = 2, col = "red")
+lines(c(rep(0, length= nrow(Data.training)), Results), type = "o", pch = 22,  col = "green")
 
 plot(Data.testing$Items, type = "o", col = "red")
 lines(as.numeric(Results), type = "o", pch = 22,  col = "green")
