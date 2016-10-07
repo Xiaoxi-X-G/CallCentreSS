@@ -26,7 +26,7 @@ source(paste(RScriptPath, "/Imputation.R", sep=""))
 ########
 ##0. Pull Historical data from database
 ##1. Set the starting date for forecasting and forecasting period
-##2. Format the data with fixed Interval, First Date ~ Finish Date
+##2. Format the data with fixed Interval
 ##3. Segment data, 12 week for the training and rest for testing
 ##4. Pull Exceptional Day and Opening Hour data
 ##5. Data preprocessing
@@ -60,7 +60,7 @@ Days.testing <- 7*1-1
 #### 2. Format the data with fixed Interval#####
 Format.FirstDate <- as.character(as.Date(DataAll[1,1]))
 Format.LastDate <- as.character(as.Date(tail(DataAll[,1], n=1)))
-Interval <- "60"
+Interval <- "30"
 
 DataAllClean <- FormatTS(DataAll, Format.FirstDate, Format.LastDate, Interval)
 DataAllClean$Items <- as.numeric(DataAllClean$Items) 
