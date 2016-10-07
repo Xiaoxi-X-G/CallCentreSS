@@ -22,14 +22,14 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
   colnames(Input.data.hourly) <- c("DateTime","Items")
   Lambda <- BoxCox.lambda(Input.data.hourly$Items)
   Input.data.hourly$BoxCox <- BoxCox(Input.data.hourly$Items, Lambda)
-  
+  Input.data.hourly$log <- log(Input.data.hourly$BoxCox + abs(min(Input.data.hourly$BoxCox)) + 1)
   
   ### 2. Intraday prediction
   Fit <- tryCatch(
     {
       Seasonal1 <- 24 #Distributed smaller interval later, 60*24/as.integer(Interval)
       Seasonal2 <- 7*Seasonal1
-      Data.msts <- msts(Input.data.hourly$BoxCox, seasonal.periods = c(Seasonal1, Seasonal2))
+      Data.msts <- msts(Input.data.hourly$log, seasonal.periods = c(Seasonal1, Seasonal2))
       Fit <- tbats(Data.msts, use.box.cox = F, 
                    seasonal.periods = c(Seasonal1, Seasonal2),
                    use.trend = T,  use.damped.trend= T,
@@ -50,7 +50,8 @@ NormalIntradayPrediction_LargeCalls <- function(Data.training, lg, Interval){
   Results.temp <- forecast(Fit, h =lg*24)
   
   ### 3. Inverse BoxCox
-  Results.hourly <- InvBoxCox(as.numeric(Results.temp$mean), Lambda)
+  
+  Results.hourly <- InvBoxCox(exp(as.numeric(Results.temp$mean))-(1+abs(min(Input.data.hourly$BoxCox))), Lambda)
   Results.hourly[which(Results.hourly < 0)] <- 0 
   
   
