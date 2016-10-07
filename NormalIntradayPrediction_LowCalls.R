@@ -21,18 +21,20 @@ NormalIntradayPrediction_LowCalls <- function(Data.training, lg, Interval){
   colnames(Data.training.daily)[2] <- "Value"
   
   ### 2. Smooth the data using Loess,  ####
-  NOPoint <- 7 # Define locate data-set, i.e., 7-points per ploynomial
-  alpha <- NOPoint/nrow(Data.training.daily)
-  lo <- loess(Data.training.daily$Value ~ as.numeric(as.POSIXct(Data.training.daily$Date, origin = "1970-01-01", tz="GMT")),
-              span = alpha,
-              parametric = F)
+  # NOPoint <- 7 # Define locate data-set, i.e., 7-points per ploynomial
+  # alpha <- NOPoint/nrow(Data.training.daily)
+  # lo <- loess(Data.training.daily$Value ~ as.numeric(as.POSIXct(Data.training.daily$Date, origin = "1970-01-01", tz="GMT")),
+  #             span = alpha,
+  #             parametric = F)
   
   
   ### 3. Forecast daily arrival calls ####
-  Data.ts <- ts(lo$fitted, frequency = 7)
+  #Data.ts <- msts(lo$fitted, seasonal.periods = 7)
+  Data.ts <- msts(Data.training.daily$Value, seasonal.periods = 7)
   Fit <- tryCatch(
     {
-      Fit <-  tbats(Data.ts, use.box.cox = T, 
+      Fit <-  bats(Data.ts, use.box.cox = F, 
+                    seasonal.periods = 7,
                     use.trend = T,  use.damped.trend= T,
                     use.arma.errors = T)
     },
