@@ -52,15 +52,15 @@ colnames(DataAll) <- c("DateTime", "Items")
 ##############################################################################
 
 #### 1. Set the starting date for forecasting and forecasting period ####
-Training.End <- "2012-01-10"
+Training.End <- "2012-01-11"
 Days.training <- 12*7
-Days.testing <- 7*1-1
+Days.testing <- 7*2-3
 ##############################################################################
 
 #### 2. Format the data with fixed Interval#####
 Format.FirstDate <- as.character(as.Date(DataAll[1,1]))
 Format.LastDate <- as.character(as.Date(tail(DataAll[,1], n=1)))
-Interval <- "30"
+Interval <- "60"
 
 DataAllClean <- FormatTS(DataAll, Format.FirstDate, Format.LastDate, Interval)
 DataAllClean$Items <- as.numeric(DataAllClean$Items) 
