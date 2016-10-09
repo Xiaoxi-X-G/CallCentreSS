@@ -53,21 +53,20 @@ colnames(DataAll) <- c("DateTime", "Items")
 
 #### 1. Set the starting date for forecasting and forecasting period ####
 Training.End <- "2012-01-10"
-Days.training <- 12*7
-Days.testing <- 7*1-1
+Days.training <- 10*7
+Days.testing <- 7*2-1
 ##############################################################################
 
 #### 2. Format the data with fixed Interval#####
 Format.FirstDate <- as.character(as.Date(DataAll[1,1]))
 Format.LastDate <- as.character(as.Date(tail(DataAll[,1], n=1)))
-Interval <- "60"
+Interval <- "30"
 
 DataAllClean <- FormatTS(DataAll, Format.FirstDate, Format.LastDate, Interval)
 DataAllClean$Items <- as.numeric(DataAllClean$Items) 
 ##############################################################################
 
 #### 3. Segment data, 12 week for the training and rest for testing####
-
 Data.training <- DataAllClean[which((as.Date(DataAllClean$DateTime)>= (as.Date(Training.End)- Days.training+1 ))
                                     & (as.Date(DataAllClean$DateTime)<= as.Date(Training.End))),]
 
@@ -115,7 +114,7 @@ lines(Data.training.imputated$Items[900:2000], type = "o", pch = 22, lty = 2, co
 plot(Data.training.imputated$Items[400:1200],  type ="o", col= "red")
 
 
-
+#Data.training.imputated <- Data.training
 ##############################################################################
 
 #### 6. Intraday prediction######
@@ -124,6 +123,18 @@ if (mean(Data.training.imputated[,2], na.rm = T) < 25){ #need to be normalized
 }else{
   Results <- as.vector(t(NormalIntradayPrediction_LargeCalls(Data.training.imputated, Days.testing, Interval)))
 }
+
+
+
+#### HoltWinter
+Data.ts <- ts(Data.training.imputated$Items, frequency = 7*24*60/as.integer(Interval))
+Fit.hw <- HoltWinters(Data.ts)
+plot(Fit.hw)
+Result.hw <- forecast.HoltWinters(Fit.hw, h = Days.testing*24*60/as.integer(Interval))
+plot(Result.hw)
+
+Results <- as.numeric(Result.hw$mean)
+Results[which(Results<0)] <-0
 
 plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
      type ="o", col= "blue",  ylim=c(0, max(Data.training$Items)), cex.axis=1.5)
