@@ -60,7 +60,7 @@ Days.testing <- 7*2-1
 #### 2. Format the data with fixed Interval#####
 Format.FirstDate <- as.character(as.Date(DataAll[1,1]))
 Format.LastDate <- as.character(as.Date(tail(DataAll[,1], n=1)))
-Interval <- "15"
+Interval <- "60"
 
 DataAllClean <- FormatTS(DataAll, Format.FirstDate, Format.LastDate, Interval)
 DataAllClean$Items <- as.numeric(DataAllClean$Items) 
@@ -128,7 +128,7 @@ if (mean(Data.training.imputated[,2], na.rm = T) < 25){ #need to be normalized
 
 #### HoltWinter
 Data.ts <- ts(Data.training.imputated$Items, frequency = 7*24*60/as.integer(Interval))
-Fit.bats <- bats(Data.ts,  use.box.cox = F, 
+Fit.bats <- tbats(Data.ts,  use.box.cox = F, 
                use.trend = T,  use.damped.trend= T,
                use.arma.errors = T)
 plot(Fit.bats)
@@ -201,7 +201,7 @@ hist(Residual)
 acf(Residual)
 qqnorm(Residual)
 
-temp11 <- 1 - abs(Data.testing$Pred - Data.testing$Items)/mean(Data.testing$Pred)
+temp11 <-  abs(Data.testing$Pred - Data.testing$Items)/mean(Data.testing$Pred)
 mean(temp11[is.finite(temp11)])
 
 #### Residual check - per day
@@ -211,6 +211,6 @@ DailyResult <- aggregate(Data.testing[,c(2,3)],
 colnames(DailyResult)[1] <- "Date"
 DailyResult$Residual <- DailyResult$Items - DailyResult$Pred
 RMSE.daily <- sqrt(mean((DailyResult$Items - DailyResult$Pred)^2, na.rm = T))
-mean(1 - abs(DailyResult$Residual)/ mean(DailyResult$Items))
+mean(abs(DailyResult$Residual)/ mean(DailyResult$Items))
 acf(DailyResult$Residual)
 ##############################################################################

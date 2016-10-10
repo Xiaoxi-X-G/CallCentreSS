@@ -30,7 +30,10 @@ NormalIntradayPrediction_LowCalls <- function(Data.training, lg, Interval){
   
   ### 3. Forecast daily arrival calls ####
   #Data.ts <- msts(lo$fitted, seasonal.periods = 7)
-  Data.ts <- msts(Data.training.daily$Value, seasonal.periods = 7)
+  Lambda <- BoxCox.lambda(Data.training.daily$Value)
+  Data.training.daily$BoxCox <- BoxCox(Data.training.daily$Value, Lambda)
+  
+  Data.ts <- msts(Data.training.daily$BoxCox, seasonal.periods = 7)
   Fit <- tryCatch(
     {
       Fit <-  bats(Data.ts, use.box.cox = F, 
@@ -48,7 +51,7 @@ NormalIntradayPrediction_LowCalls <- function(Data.training, lg, Interval){
     }
   )
   Results.temp <- forecast(Fit, h =lg)
-  Results <- as.numeric(Results.temp$mean)
+  Results <- InvBoxCox(as.numeric(Results.temp$mean), Lambda)
   Results[which(Results < 0)] <- 0 
   
   
