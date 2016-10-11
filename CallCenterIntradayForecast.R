@@ -125,8 +125,8 @@ for (n in 1:Period){
 
 Poisson.CK <- mean(apply(Rearranged.matrix, 
                          MARGIN = 2, 
-                         FUN = function(x){var(x, na.rm = T)<=1.2*mean(x,na.rm = T)})
-                   , na.rm = T)
+                         FUN = function(x){var(x, na.rm = T)<=1.2*mean(x,na.rm = T)}),
+                   na.rm = T)
 
 
 ##############################################################################
