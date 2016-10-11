@@ -4,12 +4,12 @@ NormalIntradayPrediction_LowCalls <- function(Data.training, lg, Interval){
   
   # output = lg X 60*24/Interval matrix
   
-  ############################################
+  ###################################################
   ### 1. Aggregate the data to daily level
   ### 2. Smooth the data using Loess, 7-points per ploynomial
   ### 3. Forecast daily arrival calls
   ### 4. Distributed to each intraday interval
-  ############################################
+  ###################################################
   
   #### 1. Aggregate the data to daily level ####
   Data.training.daily.temp <- Data.training
@@ -18,19 +18,22 @@ NormalIntradayPrediction_LowCalls <- function(Data.training, lg, Interval){
   Data.training.daily <- aggregate(as.integer(Data.training.daily.temp$Items),
                                    list(Date=format(Data.training.daily.temp$DateTime, "%Y-%m-%d")),
                                    FUN=sum)
-  colnames(Data.training.daily)[2] <- "Value"
+  colnames(Data.training.daily)[2] <- "Items"
   
   ### 2. Smooth the data using Loess,  ####
   # NOPoint <- 7 # Define locate data-set, i.e., 7-points per ploynomial
   # alpha <- NOPoint/nrow(Data.training.daily)
-  # lo <- loess(Data.training.daily$Value ~ as.numeric(as.POSIXct(Data.training.daily$Date, origin = "1970-01-01", tz="GMT")),
+  # lo <- loess(Data.training.daily$Items ~ as.numeric(as.POSIXct(Data.training.daily$Date, origin = "1970-01-01", tz="GMT")),
   #             span = alpha,
   #             parametric = F)
+  
+  Lambda <- BoxCox.lambda(Data.training.daily$Items)
+  Data.training.daily$BoxCox <- BoxCox(Data.training.daily$Items, Lambda)
   
   
   ### 3. Forecast daily arrival calls ####
   #Data.ts <- msts(lo$fitted, seasonal.periods = 7)
-  Data.ts <- msts(Data.training.daily$Value, seasonal.periods = 7)
+  Data.ts <- msts(Data.training.daily$BoxCox, seasonal.periods = 7)
   Fit <- tryCatch(
     {
       Fit <-  bats(Data.ts, use.box.cox = F, 
@@ -48,9 +51,9 @@ NormalIntradayPrediction_LowCalls <- function(Data.training, lg, Interval){
     }
   )
   Results.temp <- forecast(Fit, h =lg)
-  Results <- as.numeric(Results.temp$mean)
+  Results <- InvBoxCox(as.numeric(Results.temp$mean), Lambda)
   Results[which(Results < 0)] <- 0 
-  
+
   
   ### 4. Distributed to each intraday interval ####
   Data.matrix.intra <- t(matrix(as.numeric(Data.training$Items), nrow  = 24*60/as.integer(Interval)))
