@@ -29,7 +29,7 @@ source(paste(RScriptPath, "/Imputation.R", sep=""))
 ##2. Format the data with fixed Interval, First Date ~ Finish Date
 ##3. Segment data, 12 week for the training and rest for testing
 ##4. Pull Exceptional Day and Opening Hour data
-##5. Data preprocessing
+##5. Data preprocessing ---> moved to Intraday prediction
 ##6. Intraday prediction
 ##7. Exceptional Day forecasting and Update forecasting results
 ##8. Scale and update results according Opening HOurs
@@ -115,12 +115,25 @@ OpenDayTime <- OpenCloseDayTime(StartDate, FinishDate, LocationID, RScriptPath, 
 # plot(Data.training.imputated$Items[400:1200],  type ="o", col= "red")
 
 
+Period <-  7*24*60/as.integer(Interval) # assume repeat every Period points
+Rearranged.matrix <- matrix( ncol = Period, nrow=ceiling(nrow(Data.training)/Period))
+
+for (n in 1:Period){ 
+  ToCheck <- Data.training[seq(n, nrow(Data.training), by =Period ), ]
+  Rearranged.matrix[1:nrow(ToCheck), n] <- ToCheck$Items
+}
+
+Poisson.CK <- mean(apply(Rearranged.matrix, 
+                         MARGIN = 2, 
+                         FUN = function(x){var(x, na.rm = T)<=1.2*mean(x,na.rm = T)})
+                   , na.rm = T)
+
 
 ##############################################################################
 
 #### 6. Intraday prediction######
 
-if (mean(Data.training[,2], na.rm = T) < 25){ #need to be normalized
+if (Poisson.CK < 0.8){ #need to be normalized
   Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
   Results <- as.vector(t(NormalIntradayPrediction_LargeCalls(Data.training, Days.testing, Interval)))
