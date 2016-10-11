@@ -133,7 +133,7 @@ Poisson.CK <- mean(apply(Rearranged.matrix,
 
 #### 6. Intraday prediction######
 
-if (Poisson.CK < 0.8){ #need to be normalized
+if (Poisson.CK < 0.7){ # more than 70% of the data is not poisson distributed
   Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
   Results <- as.vector(t(NormalIntradayPrediction_LargeCalls(Data.training, Days.testing, Interval)))
