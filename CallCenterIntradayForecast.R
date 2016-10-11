@@ -102,27 +102,28 @@ LocationID <- 9
 OpenDayTime <- OpenCloseDayTime(StartDate, FinishDate, LocationID, RScriptPath, DatabaseName)
 ##############################################################################
 
-#### 5. Data preprocessing######
-# Data.training$Items[500:600] <- NA # testing burst NA
-# Data.training$Items[sample(1:nrow(Data.training), 100)] <- NA
-
-Data.training.imputated <- Imputation(Data.training, Interval)
-
-Data.training$Items[is.na(Data.training$Items)] <-0
-plot(Data.training$Items[900:2000],  type ="o", col= "blue")
-lines(Data.training.imputated$Items[900:2000], type = "o", pch = 22, lty = 2, col = "red")
-
-plot(Data.training.imputated$Items[400:1200],  type ="o", col= "red")
+# #### 5. Data preprocessing######
+# # Data.training$Items[500:600] <- NA # testing burst NA
+# # Data.training$Items[sample(1:nrow(Data.training), 100)] <- NA
+# 
+# Data.training.imputated <- Imputation(Data.training, Interval)
+# 
+# Data.training$Items[is.na(Data.training$Items)] <-0
+# plot(Data.training$Items[900:2000],  type ="o", col= "blue")
+# lines(Data.training.imputated$Items[900:2000], type = "o", pch = 22, lty = 2, col = "red")
+# 
+# plot(Data.training.imputated$Items[400:1200],  type ="o", col= "red")
 
 
 
 ##############################################################################
 
 #### 6. Intraday prediction######
-if (mean(Data.training.imputated[,2], na.rm = T) < 25){ #need to be normalized
-  Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training.imputated, Days.testing, Interval)))
+
+if (mean(Data.training[,2], na.rm = T) < 25){ #need to be normalized
+  Results <- as.vector(t(NormalIntradayPrediction_LowCalls(Data.training, Days.testing, Interval)))
 }else{
-  Results <- as.vector(t(NormalIntradayPrediction_LargeCalls(Data.training.imputated, Days.testing, Interval)))
+  Results <- as.vector(t(NormalIntradayPrediction_LargeCalls(Data.training, Days.testing, Interval)))
 }
 
 plot(c(Data.training$Items, rep(0, length= nrow(Data.testing))),
